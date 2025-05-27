@@ -822,7 +822,12 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                                         recognizedText = result.recognizedWords;
                                       });
                                     },
-                                    listenFor: const Duration(seconds: 30),
+                                    localeId: 'en_US',
+                                    listenFor: Duration(seconds: 30),
+                                    pauseFor: Duration(seconds: 3),
+                                    partialResults: true,
+                                    cancelOnError: true,
+                                    listenMode: stt.ListenMode.confirmation,
                                   );
 
                                   Timer.periodic(const Duration(seconds: 1),

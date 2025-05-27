@@ -253,35 +253,50 @@ def get_similar_names():
 def transcribe():
     form = request.get_json()
     prompt = f"""
-        From the given text, extract the medicine name, frequency of intake, and the dates & times of intake.:
-        {form["transcription"]}
+    You are a medical language model assistant. From the following text (which may be in English, Hindi, or a mix of both), extract detailed medicine-related information accurately.
 
-        I want you to take the current time which is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} and based on the given times in the text give exact dates and times in the "times" key of the response json.
-        The datetime format should be in yyyy-mm-dd HH:MM:SS.
+    Input Text:
+    "{form["transcription"]}"
 
-        Return ONLY valid JSON with these keys:
-        - "med_name" (string) [medicine name, rectify any minor spelling mistakes, Capitalise the first character]
-        - "frequency" (integer, times per day) [frequency of intake per day]
-        - "times" (list of time strings) [list of times in the format "yyyy-mm-dd HH:MM:SS"]
-        - "recommended_dosage" (string) [recommended dosage of the medicine like 500gm or 1 tablet]
-        - "side_effects" (string) [atmost 3 side effects of the medicine seperated by commas]
+    Current system datetime is: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-        Example input: "I have to take citrazine for 3 days at 5:00 p.m., 9:00 p.m., and 10:00 p.m. " [Given today is 2025-01-01]
-        Example output:
-        {{
-            "med_name": "Citrazine",
-            "frequency": 3,
-            "times": ["2025-01-01 17:00:00", "2025-01-01 21:00:00", "2025-01-01 22:00:00", "2025-01-02 17:00:00", "2025-01-02 21:00:00", "2025-01-02 22:00:00", "2025-01-03 17:00:00", "2025-01-03 21:00:00", "2025-01-03 22:00:00"]
-            "recommended_dosage": "500mg",
-            "side_effects": "Drowsiness, Dry mouth, Dizziness"
-        }}
-        Incase the name of the medicine does not make any sense, return 'None' for that key, and for recommended_dosage, side_effects.
-        Incase the frequency is not mentioned, return None for that key.
-        Going with the logic that medicine is taken for 3 days, and the times are repeated each day.
-        The times should be in 24-hour format.
-        The times should be in the format "yyyy-mm-dd HH:MM:SS".
-        In case of no medicine name or frequency, return None for that key.
+    ### TASK:
+    Extract and return the following information in a **valid JSON format** only, using this schema:
+
+    - "med_name": (string) → Medicine name. Correct any minor spelling errors, normalize transliterations (e.g., "सिट्रैजीन" → "Citrazine"), and capitalize the first letter.
+    - "frequency": (integer or null) → Times per day the medicine is to be taken. If not found, return `null`.
+    - "times": (list of strings) → Compute exact datetime(s) for each intake over 3 days. Use format: "yyyy-mm-dd HH:MM:SS", in 24-hour format.
+    - "recommended_dosage": (string or null) → Dosage (e.g., "1 tablet", "500mg"). Return `null` if not mentioned.
+    - "side_effects": (string or null) → Up to 3 known side effects of the medicine, separated by commas. Return `null` if medicine name is invalid.
+
+    ### ADDITIONAL NOTES:
+    - Input may contain **multiple languages** (especially **Hindi** in Devanagari script or Roman Hindi).
+    - Recognize time expressions like "5 बजे", "शाम को 6", or "सुबह 9" and convert to 24-hour time format.
+    - Assume dosage is repeated daily for **3 consecutive days** unless specified otherwise.
+    - Time interpretation must be based on the current datetime provided above.
+    - If medicine name is **invalid or unrecognizable**, set `"med_name"`, `"recommended_dosage"`, and `"side_effects"` to `null`.
+    - If intake **times are not mentioned**, return `"times"` as an empty list.
+    - JSON must be **strictly valid** (parsable).
+
+    ### EXAMPLE:
+    Input: "मुझे 3 दिन तक सिट्रैजीन शाम को 5 बजे, 9 बजे और 10 बजे लेनी है।" (Assume today is 2025-01-01)
+
+    Output:
+    {{
+        "med_name": "Citrazine",
+        "frequency": 3,
+        "times": [
+            "2025-01-01 17:00:00", "2025-01-01 21:00:00", "2025-01-01 22:00:00",
+            "2025-01-02 17:00:00", "2025-01-02 21:00:00", "2025-01-02 22:00:00",
+            "2025-01-03 17:00:00", "2025-01-03 21:00:00", "2025-01-03 22:00:00"
+        ],
+        "recommended_dosage": "500mg",
+        "side_effects": "Drowsiness, Dry mouth, Dizziness"
+    }}
+
+    If information is missing or unclear, provide `null` for that specific field.
     """
+
     response = gemini_model.generate_content(prompt)
     response = response.candidates[0].content.parts[0].text
     json_str = response.split('```json')[1].split('```')[0].strip()

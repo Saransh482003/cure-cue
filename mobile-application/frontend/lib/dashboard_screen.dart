@@ -707,7 +707,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Check if medicine is expired
     bool isExpired = false;
     try {
-      final parts = expiryDate.split(' ');
+      final parts = expiryDate.split('-');
       if (parts.length == 3) {
         const months = {
           'Jan': 1,
@@ -724,14 +724,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Dec': 12
         };
         final expiryDateTime = DateTime(
-          int.parse(parts[0]), // year
-          months[parts[1]] ?? 1, // month
-          int.parse(parts[2]), // day
+          int.parse(parts[2]), // year
+          int.parse(parts[1]), // month
+          int.parse(parts[0]), // day
         );
         final today = DateTime.now();
         isExpired = expiryDateTime
             .isBefore(DateTime(today.year, today.month, today.day));
-        print(isExpired ? 'Medicine is expired' : 'Medicine is not expired');
       }
     } catch (e) {
       print('Error parsing date: $e');
@@ -849,6 +848,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           'pres_id': presId,
                         }),
                       );
+                      _fetchUserData();
                       // ... (keep existing delete handling code)
                     } catch (e) {
                       // ... (keep existing error handling)
