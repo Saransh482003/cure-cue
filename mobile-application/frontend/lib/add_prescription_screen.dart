@@ -489,11 +489,11 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                                 builder: (context) => const MedicineNameCheck(),
                               ),
                             );
-                            final medicine_name =
+                            final medicineName =
                                 json.decode(result)["medicine_name"];
-                            final recommended_dosage =
+                            final recommendedDosage =
                                 json.decode(result)["recommended_dosage"];
-                            final side_effects =
+                            final sideEffects =
                                 json.decode(result)["side_effects"];
                             final List<String> similarMatches = (json.decode(result)['similar-matches'] as List<dynamic>? ?? [])
                                 .whereType<String>() // Ensure we only get strings
@@ -502,9 +502,9 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                             
                             if (result != null) {
                               setState(() {
-                                _medicineNameController.text = medicine_name;
-                                _dosageController.text = recommended_dosage;
-                                _sideEffectsController.text = side_effects;
+                                _medicineNameController.text = medicineName;
+                                _dosageController.text = recommendedDosage;
+                                _sideEffectsController.text = sideEffects;
                                 _similarMatches = similarMatches;
                               });
                               print(_similarMatches.length);

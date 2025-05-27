@@ -605,11 +605,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     topRight: Radius.circular(12),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
                     Icon(Icons.notifications,
                         color: ThemeConstants.primaryColor),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       'Completed Reminders',
                       style: TextStyle(
@@ -658,7 +658,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ThemeConstants.primaryColor.withOpacity(0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.check,
                               color: ThemeConstants.primaryColor,
                               size: 20,
