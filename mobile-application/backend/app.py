@@ -147,7 +147,7 @@ def getUserData():
             "prescriptions": sorted([
                 {
                 "pres_id": p.pres_id,
-                "med_id": p.med_id,
+                "medicine_id": p.med_id,
                 "medicine_name": m.med_name,
                 "recommended_dosage": m.recommended_dosage,
                 "side_effects": m.side_effects,
@@ -176,6 +176,36 @@ def getMedicine():
         "side_effects": fetchMed.side_effects if fetchMed else None
     }
     return response, 200 if fetchMed else 404
+
+@app.route("/get-med-info", methods=["GET"])
+def getMedicineInfo():
+    med_name = request.args.get("med_name", "")
+    if med_name:
+        fetchMeds = Medicines.query.filter(Medicines.med_name == med_name).first()
+        prompt = f"""
+        You are a medical assistant. You would be given a medicine name and you have to return the information about the medicine in a valid JSON format.
+
+        Medicine Name: {fetchMeds.med_name if fetchMeds else "None"}
+        The information should include just the information publically available about the medicine.
+        Incase you have no information avaible about the medicine, return "Information not available".
+        The information should be in text format and should not include any HTML tags or any other formatting. It shoud be 50 words in length.
+
+        # Example Input/Output:
+        Input: Paracetamol
+        Output:
+        {{
+            "med_name": "Paracetamol",
+            "info": <information about the medicine>
+        }}
+        """
+        response = gemini_model.generate_content(prompt)
+        response = response.candidates[0].content.parts[0].text
+        print(response)
+        json_str = response.split('```json')[1].split('```')[0].strip()
+        response = json.loads(json_str)
+        print(response)
+        return response, 200
+    return "Medicine not available", 404
 
 @app.route("/add-medicine", methods=["POST"])
 def addMedicine():

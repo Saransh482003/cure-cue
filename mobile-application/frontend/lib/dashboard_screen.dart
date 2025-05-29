@@ -27,6 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Map<String, dynamic>> _allReminders = [];
   final GlobalKey _notificationKey = GlobalKey();
   bool _showNotificationsDropdown = false;
+  Map<String, String> _medicineInfo = {};  // Store medicine info for each medicine
   List<Map<String, dynamic>> _completedReminders = [];
   bool isLoading = true;
   final TextEditingController _medicineNameController = TextEditingController();
@@ -96,6 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           userData = jsonDecode(response.body);
           isLoading = false;
+          _medicineInfo = {}; // Reset medicine info
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -475,11 +477,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ...((userData!['prescriptions'] as List)
                                   .map(
                                     (prescription) => _buildPrescriptionCard(
-                                      medicineName:
-                                          prescription['medicine_name'],
+                                      medicineId: prescription['medicine_id'],
+                                      medicineName: prescription['medicine_name'],
                                       presId: prescription['pres_id'],
-                                      recommendedDosage:
-                                          prescription['recommended_dosage'],
+                                      recommendedDosage: prescription['recommended_dosage'],
                                       sideEffects: prescription['side_effects'],
                                       frequency: prescription['frequency'],
                                       expiryDate: prescription['expiry_date'],
@@ -696,6 +697,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPrescriptionCard({
+    required String medicineId,
     required String medicineName,
     required String presId,
     required String recommendedDosage,
@@ -829,8 +831,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               value: expiryDate,
               isExpired: isExpired, // Pass the isExpired flag
             ),
-            const SizedBox(height: 8),
-            ExpansionTile(
+            const SizedBox(height: 8),            ExpansionTile(
               tilePadding: EdgeInsets.zero,
               leading: Icon(
                 Icons.info_outline,
@@ -844,11 +845,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              onExpansionChanged: (expanded) async {
+                if (expanded && !_medicineInfo.containsKey(presId)) {
+                  try {
+                    final response = await http.get(
+                      Uri.parse('$baseUrl/get-med-info?med_name=$medicineName'),
+                      headers: {'Content-Type': 'application/json'},
+                    );
+                    if (response.statusCode == 200) {
+                      print(response.body);
+                      setState(() {
+                        _medicineInfo[presId] = jsonDecode(response.body)['info'] ?? 'No information available';
+                      });
+                    } else {
+                      setState(() {
+                        _medicineInfo[presId] = 'Failed to load information';
+                      });
+                    }
+                  } catch (e) {
+                    setState(() {
+                      _medicineInfo[presId] = 'Error loading information';
+                    });
+                  }
+                }
+              },
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 2.0, left: 1.0),
+                  padding: const EdgeInsets.only(bottom: 8.0, left: 40.0),
                   child: Text(
-                    'This medicine is used for various conditions. Please follow the prescribed dosage and consult your doctor if you experience any side effects.',
+                    _medicineInfo[presId] ?? 'Loading...',
                     style: TextStyle(
                       color: isExpired ? Colors.red[700] : Colors.black87,
                       fontSize: 12,
