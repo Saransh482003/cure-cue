@@ -1,4 +1,3 @@
-// filepath: e:\expiry-date-checker-adherence-assistant\frontend\lib\success_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
@@ -772,7 +771,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,                    
                     children: [
                       Text(
                         medicineName,
@@ -784,8 +783,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               : Colors.black, // Darker red
                           decoration: isExpired
                               ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
+                              : TextDecoration.none,                        ),
                       ),
                     ],
                   ),
@@ -818,19 +816,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
               value: recommendedDosage,
               isExpired: isExpired, // Pass the isExpired flag
             ),
-            const SizedBox(height: 8),
-            _buildPrescriptionDetail(
+            const SizedBox(height: 8),            _buildPrescriptionDetail(
               icon: Icons.warning_amber_rounded,
               title: 'Side Effects',
               value: sideEffects,
               isExpired: isExpired, // Pass the isExpired flag
-            ),
-            const SizedBox(height: 8),
+            ),   
+            const SizedBox(height: 8),            
             _buildPrescriptionDetail(
               icon: Icons.event_available,
               title: 'Expiry Date',
               value: expiryDate,
               isExpired: isExpired, // Pass the isExpired flag
+            ),
+            const SizedBox(height: 8),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.info_outline,
+                size: 16,
+                color: isExpired ? Colors.red[700] : ThemeConstants.primaryColor,
+              ),
+              title: const Text(
+                'Medicine Information',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2.0, left: 1.0),
+                  child: Text(
+                    'This medicine is used for various conditions. Please follow the prescribed dosage and consult your doctor if you experience any side effects.',
+                    style: TextStyle(
+                      color: isExpired ? Colors.red[700] : Colors.black87,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SizedBox(

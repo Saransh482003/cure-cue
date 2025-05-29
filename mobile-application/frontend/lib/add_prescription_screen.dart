@@ -39,6 +39,27 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
   final AudioRecorder audioRecorder = AudioRecorder();
   List<String> _similarMatches = [];
 
+  // Language selection for voice recognition
+  String _selectedLanguage = 'en-US';
+  final Map<String, String> _languages = {
+    'en-US': 'English',
+    'hi-IN': 'हिंदी',
+    'bn-IN': 'বাংলা',
+    'mr-IN': 'मराठी',
+    'gu-IN': 'ગુજરાતી',
+    'te-IN': 'తెలుగు',
+    'ta-IN': 'தமிழ்',
+  };
+  final Map<String, IconData> _languageIcons = {
+    'en-US': Icons.language,
+    'hi-IN': Icons.translate,
+    'bn-IN': Icons.record_voice_over,
+    'mr-IN': Icons.voice_chat,
+    'gu-IN': Icons.chat_bubble,
+    'te-IN': Icons.speaker_notes,
+    'ta-IN': Icons.forum,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -700,10 +721,129 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                             fontSize: 14,
                             color: Colors.grey,
                           ),
-                        ),
-                      ],
+                        ),                      ],
                     ),
                     const SizedBox(height: 24),
+
+                    // Language Selection Section
+                    if (!localIsRecording)
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.language,
+                                size: 18,
+                                color: ThemeConstants.primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Select Language',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: ThemeConstants.primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            height: 80,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Row(
+                                children: _languages.entries.map((entry) {
+                                  final bool isSelected = _selectedLanguage == entry.key;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setDialogState(() {
+                                        _selectedLanguage = entry.key;
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 300),
+                                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: isSelected
+                                            ? LinearGradient(
+                                                colors: [
+                                                  ThemeConstants.primaryColor,
+                                                  ThemeConstants.primaryColor.withOpacity(0.8),
+                                                ],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              )
+                                            : null,
+                                        color: isSelected 
+                                            ? null 
+                                            : Colors.grey[100],
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? ThemeConstants.primaryColor
+                                              : Colors.grey[300]!,
+                                          width: isSelected ? 2 : 1,
+                                        ),
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: ThemeConstants.primaryColor.withOpacity(0.3),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _languageIcons[entry.key] ?? Icons.language,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : ThemeConstants.primaryColor,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            entry.value,
+                                            style: TextStyle(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : ThemeConstants.primaryColor,
+                                              fontSize: 12,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (isSelected)
+                                            Container(
+                                              width: 4,
+                                              height: 4,
+                                              margin: const EdgeInsets.only(top: 2),
+                                              decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
 
                     // Timer and Recording Indicator
                     if (localIsRecording)
@@ -822,7 +962,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                                         recognizedText = result.recognizedWords;
                                       });
                                     },
-                                    localeId: 'en_US',
+                                    localeId: _selectedLanguage,
                                     listenFor: Duration(seconds: 30),
                                     pauseFor: Duration(seconds: 3),
                                     partialResults: true,
@@ -926,7 +1066,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                   ],
                 ),
               ),
-            ),
+            )
           );
         },
       ),
