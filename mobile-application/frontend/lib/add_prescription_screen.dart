@@ -50,15 +50,15 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
     'te-IN': 'తెలుగు',
     'ta-IN': 'தமிழ்',
   };
-  final Map<String, IconData> _languageIcons = {
-    'en-US': Icons.language,
-    'hi-IN': Icons.translate,
-    'bn-IN': Icons.record_voice_over,
-    'mr-IN': Icons.voice_chat,
-    'gu-IN': Icons.chat_bubble,
-    'te-IN': Icons.speaker_notes,
-    'ta-IN': Icons.forum,
-  };
+  // final Map<String, String> _languageLetters = {
+  //   'en-US': 'A', // English
+  //   'hi-IN': 'अ', // Hindi
+  //   'bn-IN': 'অ', // Bengali
+  //   'mr-IN': 'अ', // Marathi
+  //   'gu-IN': 'અ', // Gujarati
+  //   'te-IN': 'అ', // Telugu
+  //   'ta-IN': 'அ', // Tamil
+  // };  
 
   @override
   void initState() {
@@ -610,6 +610,33 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
               ),
             ));
   }
+  Widget buildLanguageIcon(String locale, bool isSelected) {
+    final Map<String, String> _languageLetters = {
+      'en-US': 'A',
+      'hi-IN': 'अ',
+      'bn-IN': 'অ',
+      'mr-IN': 'अ',
+      'gu-IN': 'અ',
+      'te-IN': 'అ',
+      'ta-IN': 'அ',
+    };
+
+    final letter = _languageLetters[locale] ?? '?';
+
+    return CircleAvatar(
+      radius: 12,
+      backgroundColor:
+          isSelected ? ThemeConstants.primaryColor : Colors.grey.shade200,
+      child: Text(
+        letter,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: isSelected ? Colors.white : ThemeConstants.primaryColor,
+        ),
+      ),
+    );
+  }
 
   Widget _buildInputField({
     required TextEditingController controller,
@@ -803,13 +830,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(
-                                            _languageIcons[entry.key] ?? Icons.language,
-                                            color: isSelected
-                                                ? Colors.white
-                                                : ThemeConstants.primaryColor,
-                                            size: 20,
-                                          ),
+                                          buildLanguageIcon(entry.key, isSelected),
                                           const SizedBox(height: 4),
                                           Text(
                                             entry.value,
