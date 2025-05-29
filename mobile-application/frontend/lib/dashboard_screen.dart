@@ -833,17 +833,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),            ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.info_outline,
-                size: 16,
-                color: isExpired ? Colors.red[700] : ThemeConstants.primaryColor,
+              childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              leading: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (isExpired ? Colors.red[700] : ThemeConstants.primaryColor)?.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: isExpired ? Colors.red[700] : ThemeConstants.primaryColor,
+                ),
               ),
-              title: const Text(
+              title: Text(
                 'Medicine Information',
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
+                  color: isExpired ? Colors.red[700] : Colors.black87,
                 ),
+              ),
+              trailing: Icon(
+                Icons.keyboard_arrow_down,
+                color: isExpired ? Colors.red[700] : ThemeConstants.primaryColor,
               ),
               onExpansionChanged: (expanded) async {
                 if (expanded && !_medicineInfo.containsKey(presId)) {
@@ -870,15 +883,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 }
               },
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0, left: 40.0),
-                  child: Text(
-                    _medicineInfo[presId] ?? 'Loading...',
-                    style: TextStyle(
-                      color: isExpired ? Colors.red[700] : Colors.black87,
-                      fontSize: 12,
-                    ),
-                  ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  child: _medicineInfo.containsKey(presId)
+                      ? Container(
+                          key: ValueKey('info-$presId'),
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: (isExpired ? Colors.red[50] : Colors.blue[50])?.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: (isExpired ? Colors.red[200] : Colors.blue[200])!,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.medical_information,
+                                    size: 18,
+                                    color: isExpired ? Colors.red[600] : Colors.blue[600],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Details',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: isExpired ? Colors.red[700] : Colors.blue[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _medicineInfo[presId]!,
+                                style: TextStyle(
+                                  color: isExpired ? Colors.red[700] : Colors.black87,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          key: ValueKey('loading-$presId'),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isExpired ? Colors.red[600]! : ThemeConstants.primaryColor,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Fetching medicine information...',
+                                style: TextStyle(
+                                  color: isExpired ? Colors.red[600] : ThemeConstants.primaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                 ),
               ],
             ),
