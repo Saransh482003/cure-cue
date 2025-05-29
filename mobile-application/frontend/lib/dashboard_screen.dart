@@ -1062,8 +1062,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ],
                                     // Add Time button - opens time picker modal
                                     ElevatedButton(
-                                      onPressed: () async {
-                                        final time =
+                                      onPressed: () async {                                        final time =
                                             await showDialog<TimeOfDay>(
                                           context: context,
                                           builder: (context) {
@@ -1071,13 +1070,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             int tempMinute = selectedMinute;
                                             bool tempIsPM = isPM;
 
-                                            return Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                              ),
-                                              child: Container(
-                                                padding:
+                                            return StatefulBuilder(
+                                              builder: (context, setTimeState) {
+                                                return Dialog(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(20),
+                                                  ),
+                                                  child: Container(
+                                                    padding:
                                                     const EdgeInsets.all(24),
                                                 child: Column(
                                                   mainAxisSize:
@@ -1151,10 +1152,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                                   diameterRatio:
                                                                       2.0, // Makes the wheel appear flatter
                                                                   physics:
-                                                                      const FixedExtentScrollPhysics(),
-                                                                  onSelectedItemChanged:
+                                                                      const FixedExtentScrollPhysics(),                                                                  onSelectedItemChanged:
                                                                       (index) {
-                                                                    setState(() =>
+                                                                    setTimeState(() =>
                                                                         tempHour =
                                                                             index +
                                                                                 1);
@@ -1168,21 +1168,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                                             index) {
                                                                       final isCentered =
                                                                           tempHour ==
-                                                                              index + 1;
-                                                                      return Container(
+                                                                              index + 1;                                                                      return Container(
                                                                         decoration:
                                                                             BoxDecoration(
-                                                                          // color: isCentered
-                                                                          //     ? ThemeConstants.primaryColor.withOpacity(0.1)
-                                                                          //     : Colors.transparent,
+                                                                          color: isCentered
+                                                                              ? ThemeConstants.primaryColor.withOpacity(0.1)
+                                                                              : Colors.transparent,
                                                                           borderRadius:
                                                                               BorderRadius.circular(12),
-                                                                          // border: isCentered
-                                                                          //     ? Border.all(
-                                                                          //         color: ThemeConstants.primaryColor,
-                                                                          //         width: 2,
-                                                                          //       )
-                                                                          //     : null,
+                                                                          border: isCentered
+                                                                              ? Border.all(
+                                                                                  color: ThemeConstants.primaryColor,
+                                                                                  width: 2,
+                                                                                )
+                                                                              : null,
                                                                         ),
                                                                         child:
                                                                             Center(
@@ -1193,8 +1192,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                                             style:
                                                                                 TextStyle(
                                                                               fontSize: 24,
-                                                                              fontWeight: FontWeight.normal,
-                                                                              color: Colors.grey.shade600,
+                                                                              fontWeight: isCentered ? FontWeight.bold : FontWeight.normal,
+                                                                              color: isCentered ? ThemeConstants.primaryColor : Colors.grey.shade600,
                                                                             ),
                                                                           ),
                                                                         ),
@@ -1243,10 +1242,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                                     diameterRatio:
                                                                         2.0,
                                                                     physics:
-                                                                        const FixedExtentScrollPhysics(),
-                                                                    onSelectedItemChanged:
+                                                                        const FixedExtentScrollPhysics(),                                                                    onSelectedItemChanged:
                                                                         (index) {
-                                                                      setState(() =>
+                                                                      setTimeState(() =>
                                                                           tempMinute =
                                                                               index * 5);
                                                                     },
@@ -1262,21 +1260,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                                                 5;
                                                                         final isCentered =
                                                                             tempMinute ==
-                                                                                minuteValue;
-                                                                        return Container(
+                                                                                minuteValue;                                                                        return Container(
                                                                           decoration:
                                                                               BoxDecoration(
-                                                                            // color: isCentered
-                                                                            //     ? ThemeConstants.primaryColor.withOpacity(0.1)
-                                                                            //     : Colors.transparent,
+                                                                            color: isCentered
+                                                                                ? ThemeConstants.primaryColor.withOpacity(0.1)
+                                                                                : Colors.transparent,
                                                                             borderRadius:
                                                                                 BorderRadius.circular(12),
-                                                                            // border: isCentered
-                                                                            //     ? Border.all(
-                                                                            //         color: ThemeConstants.primaryColor,
-                                                                            //         width: 2,
-                                                                            //       )
-                                                                            //     : null,
+                                                                            border: isCentered
+                                                                                ? Border.all(
+                                                                                    color: ThemeConstants.primaryColor,
+                                                                                    width: 2,
+                                                                                  )
+                                                                                : null,
                                                                           ),
                                                                           child:
                                                                               Center(
@@ -1285,8 +1282,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                                               minuteValue.toString().padLeft(2, '0'),
                                                                               style: TextStyle(
                                                                                 fontSize: 24,
-                                                                                fontWeight: FontWeight.normal,
-                                                                                color: Colors.grey.shade600,
+                                                                                fontWeight: isCentered ? FontWeight.bold : FontWeight.normal,
+                                                                                color: isCentered ? ThemeConstants.primaryColor : Colors.grey.shade600,
                                                                               ),
                                                                             ),
                                                                           ),
@@ -1314,13 +1311,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                       child: Row(
                                                         mainAxisSize:
                                                             MainAxisSize.min,
-                                                        children: [
-                                                          _buildPeriodButton(
+                                                        children: [                                                          _buildPeriodButton(
                                                             label: 'AM',
                                                             isSelected:
                                                                 !tempIsPM,
                                                             onTap: () =>
-                                                                setState(() =>
+                                                                setTimeState(() =>
                                                                     tempIsPM =
                                                                         false),
                                                           ),
@@ -1331,7 +1327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                             isSelected:
                                                                 tempIsPM,
                                                             onTap: () =>
-                                                                setState(() =>
+                                                                setTimeState(() =>
                                                                     tempIsPM =
                                                                         true),
                                                           ),
@@ -1393,10 +1389,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                           ),
                                                         ),
                                                       ],
-                                                    ),
-                                                  ],
+                                                    ),                                                  ],
                                                 ),
                                               ),
+                                            );
+                                              },
                                             );
                                           },
                                         );
