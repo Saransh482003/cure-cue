@@ -49,6 +49,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
     'gu-IN': 'ગુજરાતી',
     'te-IN': 'తెలుగు',
     'ta-IN': 'தமிழ்',
+    'ur-IN': 'اردو',
   };
   // final Map<String, String> _languageLetters = {
   //   'en-US': 'A', // English
@@ -619,6 +620,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
       'gu-IN': 'અ',
       'te-IN': 'అ',
       'ta-IN': 'அ',
+      'ur-IN': 'ک',
     };
 
     final letter = languageLetters[locale] ?? '?';

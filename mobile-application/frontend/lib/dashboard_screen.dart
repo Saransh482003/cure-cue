@@ -6,6 +6,7 @@ import 'theme_constants.dart';
 import 'constants.dart';
 import 'add_prescription_screen.dart';
 import 'package:frontend/services/noti_serve.dart';
+import 'services/auth_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String username;
@@ -217,11 +218,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 setState(() => _showNotificationsDropdown = true);
               }
             },
-          ),
-          IconButton(
+          ),          IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () {
-              Navigator.of(context).pushReplacementNamed('/');
+            onPressed: () async {
+              // Clear stored credentials before logout
+              await AuthService.clearStoredCredentials();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed('/');
+              }
             },
           ),
         ],
