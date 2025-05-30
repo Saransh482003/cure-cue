@@ -9,6 +9,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 
 class NotiService {
   final notificationsPlugin = FlutterLocalNotificationsPlugin();
+  static const String medTakenActionId = 'med_taken_action';
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
@@ -31,58 +32,112 @@ class NotiService {
     if (await Permission.ignoreBatteryOptimizations.isDenied) {
       await Permission.ignoreBatteryOptimizations.request();
     }
-    const initSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettingsIOS = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+
+    // Initialize notification channels with actions
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'daily_medicine_reminder',
+      'Daily Medicine Reminder',
+      description: 'Daily Medicine Reminder',
+      importance: Importance.max,
+      playSound: true,
     );
-    const initSettings = InitializationSettings(
-      android: initSettingsAndroid,
-      iOS: initSettingsIOS,
-    );
+
     await notificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(const AndroidNotificationChannel(
-          'daily_medicine_reminder',
-          'Daily Medicine Reminder',
-          description: 'Daily Medicine Reminder',
-          importance: Importance.max,
-          playSound: true, // Add this
-          // sound: RawResourceAndroidNotificationSound('notification_sound'),
-        ));
-    await notificationsPlugin.initialize(initSettings);
+        ?.createNotificationChannel(channel);
+
+    // Initialize with action handling
+    const initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    var initSettingsIOS = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+      notificationCategories: [
+        DarwinNotificationCategory(
+          'med_reminder_category',
+          actions: [
+            DarwinNotificationAction.plain(
+              medTakenActionId,
+              'I TOOK THE MEDICATION',
+              options: {
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        )
+      ],
+    );
+
+    var initSettings = InitializationSettings(
+      android: initSettingsAndroid,
+      iOS: initSettingsIOS,
+    );
+
+    await notificationsPlugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.actionId == medTakenActionId) {
+          // Handle medication taken action
+          debugPrint('Medication taken confirmed');
+          // You can add your logic here to mark medication as taken
+        }
+      },
+    );
+
     _isInitialized = true;
   }
 
-  NotificationDetails notificationDetails() {
+  NotificationDetails _notificationDetails() {
+    // Android action
+    const AndroidNotificationAction medTakenAction = AndroidNotificationAction(
+      medTakenActionId,
+      'I TOOK THE MEDICATION',
+      cancelNotification: true, // This will dismiss the notification when tapped
+    );
+
+    // Android details
+    const androidDetails = AndroidNotificationDetails(
+      "daily_medicine_reminder",
+      "Daily Medicine Reminder",
+      channelDescription: "Daily Medicine Reminder",
+      importance: Importance.max,
+      priority: Priority.high,
+      sound: RawResourceAndroidNotificationSound('notification_sound'),
+      playSound: true,
+      ongoing: true, // Makes notification persistent
+      autoCancel: false, // Notification won't auto dismiss
+      actions: [medTakenAction], // Add action button
+    );
+
+    // iOS details
+    const iosDetails = DarwinNotificationDetails(
+      sound: 'notification_sound.wav',
+      presentSound: true,
+      presentAlert: true,
+      presentBadge: true,
+      categoryIdentifier: 'med_reminder_category',
+    );
+
     return const NotificationDetails(
-        android: AndroidNotificationDetails(
-          "daily_medicine_reminder",
-          "Daily Medicine Reminder",
-          channelDescription: "Daily Medicine Reminder",
-          importance: Importance.max,
-          priority: Priority.high,
-          sound: RawResourceAndroidNotificationSound(
-              'notification_sound'), // Remove .wav extension
-          playSound: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          sound: 'notification_sound.wav',
-          presentSound: true,
-          presentAlert: true,
-          presentBadge: true,
-        ));
+      android: androidDetails,
+      iOS: iosDetails,
+    );
   }
 
-  // Use the notificationDetails in showNotification
-  Future<void> showNotification(
-      {int id = 0, String? title, String? body}) async {
-    return notificationsPlugin.show(id, title, body,
-        notificationDetails() // Use the configured details instead of empty one
-        );
+  Future<void> showNotification({
+    int id = 0,
+    String? title,
+    String? body,
+    String? payload,
+  }) async {
+    await notificationsPlugin.show(
+      id,
+      title,
+      body,
+      _notificationDetails(),
+      payload: payload,
+    );
   }
 
   Future<void> scheduleNotification({
@@ -93,23 +148,15 @@ class NotiService {
     required int minute,
   }) async {
     try {
-      // Ensure initialization
       if (!_isInitialized) await initNotification();
       final medName = body.replaceFirst('Time to take ', '');
       final id = '${medName}_${hour}_$minute'.hashCode;
 
-      final now = tz.TZDateTime.now(tz.local);
-      var scheduledDate =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-
-      // Handle past times
-      if (scheduledDate.isBefore(now)) {
-        scheduledDate = scheduledDate.add(const Duration(days: 1));
-      }
+      final scheduledDate = _nextInstanceOfTime(hour, minute);
 
       debugPrint("""
         Scheduling notification:
-        - Now: $now
+        - Now: ${tz.TZDateTime.now(tz.local)}
         - Scheduled: $scheduledDate
         - Timezone: ${tz.local.name}
         """);
@@ -118,34 +165,27 @@ class NotiService {
         id,
         title,
         body,
-        _nextInstanceOfTime(hour, minute),
-        notificationDetails(),
+        scheduledDate,
+        _notificationDetails(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
         payload: jsonEncode({
-          'medicine': body.replaceFirst('Time to take ', ''),
+          'medicine': medName,
           'hour': hour,
           'minute': minute,
+          'scheduled_time': scheduledDate.toIso8601String(),
         }),
       );
-      debugPrint(
-          "Notification scheduled successfully for $hour:$minute"); // Add logging
+      debugPrint("Notification scheduled successfully for $hour:$minute");
     } catch (e) {
-      debugPrint("Error scheduling notification: $e"); // Add error logging
+      debugPrint("Error scheduling notification: $e");
       rethrow;
     }
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
 
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
