@@ -10,6 +10,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 class NotiService {
   final notificationsPlugin = FlutterLocalNotificationsPlugin();
   static const String medTakenActionId = 'med_taken_action';
+  static const String medForgotActionId = 'med_forgot_action';
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
@@ -53,13 +54,19 @@ class NotiService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      notificationCategories: [
-        DarwinNotificationCategory(
+      notificationCategories: [        DarwinNotificationCategory(
           'med_reminder_category',
           actions: [
             DarwinNotificationAction.plain(
               medTakenActionId,
               'I TOOK THE MEDICATION',
+              options: {
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              medForgotActionId,
+              'I Forgot',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
@@ -75,24 +82,32 @@ class NotiService {
     );
 
     await notificationsPlugin.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
+      initSettings,      onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (response.actionId == medTakenActionId) {
           // Handle medication taken action
           debugPrint('Medication taken confirmed');
           // You can add your logic here to mark medication as taken
+        } else if (response.actionId == medForgotActionId) {
+          // Handle medication forgot action
+          debugPrint('Medication forgot confirmed');
+          // You can add your logic here to handle missed medication
         }
       },
     );
 
     _isInitialized = true;
   }
-
   NotificationDetails _notificationDetails() {
-    // Android action
+    // Android actions
     const AndroidNotificationAction medTakenAction = AndroidNotificationAction(
       medTakenActionId,
       'I TOOK THE MEDICATION',
+      cancelNotification: true, // This will dismiss the notification when tapped
+    );
+
+    const AndroidNotificationAction medForgotAction = AndroidNotificationAction(
+      medForgotActionId,
+      'I Forgot',
       cancelNotification: true, // This will dismiss the notification when tapped
     );
 
@@ -107,7 +122,7 @@ class NotiService {
       playSound: true,
       ongoing: true, // Makes notification persistent
       autoCancel: false, // Notification won't auto dismiss
-      actions: [medTakenAction], // Add action button
+      actions: [medTakenAction, medForgotAction], // Add action buttons
     );
 
     // iOS details
