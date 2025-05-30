@@ -54,7 +54,8 @@ class NotiService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      notificationCategories: [        DarwinNotificationCategory(
+      notificationCategories: [        
+        DarwinNotificationCategory(
           'med_reminder_category',
           actions: [
             DarwinNotificationAction.plain(

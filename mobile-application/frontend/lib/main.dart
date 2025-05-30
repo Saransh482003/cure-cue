@@ -93,7 +93,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(
+              const CircularProgressIndicator(
                 color: ThemeConstants.primaryColor,
               ),
               const SizedBox(height: 16),
