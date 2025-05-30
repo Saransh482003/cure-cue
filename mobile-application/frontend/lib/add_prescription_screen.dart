@@ -611,7 +611,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
             ));
   }
   Widget buildLanguageIcon(String locale, bool isSelected) {
-    final Map<String, String> _languageLetters = {
+    final Map<String, String> languageLetters = {
       'en-US': 'A',
       'hi-IN': 'अ',
       'bn-IN': 'অ',
@@ -621,7 +621,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
       'ta-IN': 'அ',
     };
 
-    final letter = _languageLetters[locale] ?? '?';
+    final letter = languageLetters[locale] ?? '?';
 
     return CircleAvatar(
       radius: 12,
@@ -756,15 +756,15 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                     if (!localIsRecording)
                       Column(
                         children: [
-                          Row(
+                          const Row(
                             children: [
                               Icon(
                                 Icons.language,
                                 size: 18,
                                 color: ThemeConstants.primaryColor,
                               ),
-                              const SizedBox(width: 8),
-                              const Text(
+                              SizedBox(width: 8),
+                              Text(
                                 'Select Language',
                                 style: TextStyle(
                                   fontSize: 16,
@@ -775,7 +775,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Container(
+                          SizedBox(
                             height: 80,
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -984,8 +984,8 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                                       });
                                     },
                                     localeId: _selectedLanguage,
-                                    listenFor: Duration(seconds: 30),
-                                    pauseFor: Duration(seconds: 3),
+                                    listenFor: const Duration(seconds: 30),
+                                    pauseFor: const Duration(seconds: 3),
                                     partialResults: true,
                                     cancelOnError: true,
                                     listenMode: stt.ListenMode.confirmation,
