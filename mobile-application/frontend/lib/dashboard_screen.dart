@@ -514,6 +514,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onPressed: () async {
           final result = await Navigator.push(
             context,
+            // MaterialPageRoute(
+            //   builder: (context) => const MedicationLogsScreen(),
+            // ),
             MaterialPageRoute(
               builder: (context) => AddPrescriptionScreen(
                 username: widget.username,

@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'medication_log_service.dart';
 
 class NotiService {
   final notificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -59,14 +60,14 @@ class NotiService {
           actions: [
             DarwinNotificationAction.plain(
               medTakenActionId,
-              '✅ I TOOK THE MEDICATION',
+              'I TOOK THE MEDICATION',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
             ),
             DarwinNotificationAction.plain(
               medForgotActionId,
-              '❌ I Forgot',
+              'I Forgot',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
@@ -82,15 +83,41 @@ class NotiService {
     );
 
     await notificationsPlugin.initialize(
-      initSettings,      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (response.actionId == medTakenActionId) {
-          // Handle medication taken action
-          debugPrint('Medication taken confirmed');
-          // You can add your logic here to mark medication as taken
-        } else if (response.actionId == medForgotActionId) {
-          // Handle medication forgot action
-          debugPrint('Medication forgot confirmed');
-          // You can add your logic here to handle missed medication
+      initSettings,      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        try {
+          // Parse the payload to get medicine information
+          Map<String, dynamic>? payloadData;
+          if (response.payload != null) {
+            payloadData = jsonDecode(response.payload!);
+          }
+
+          final medicineName = payloadData?['medicine'] ?? 'Unknown Medicine';
+          final scheduledTimeStr = payloadData?['scheduled_time'];
+          final reminderTime = scheduledTimeStr != null 
+              ? DateTime.parse(scheduledTimeStr)
+              : DateTime.now();
+
+          if (response.actionId == medTakenActionId) {
+            // Handle medication taken action
+            debugPrint('Medication taken confirmed: $medicineName');
+            await MedicationLogService.logMedicationAction(
+              action: 'taken',
+              medicineName: medicineName,
+              reminderTime: reminderTime,
+              actionTime: DateTime.now(),
+            );
+          } else if (response.actionId == medForgotActionId) {
+            // Handle medication forgot action
+            debugPrint('Medication forgot confirmed: $medicineName');
+            await MedicationLogService.logMedicationAction(
+              action: 'forgot',
+              medicineName: medicineName,
+              reminderTime: reminderTime,
+              actionTime: DateTime.now(),
+            );
+          }
+        } catch (e) {
+          debugPrint('Error handling notification response: $e');
         }
       },
     );
@@ -100,18 +127,18 @@ class NotiService {
   NotificationDetails _notificationDetails() {    // Android actions
     const AndroidNotificationAction medTakenAction = AndroidNotificationAction(
       medTakenActionId,
-      '✅ I TOOK THE MEDICATION',
+      'I TOOK THE MEDICATION',
       cancelNotification: true, // This will dismiss the notification when tapped
-      titleColor: Color.fromARGB(255, 76, 175, 80), // Green text color
-      contextual: true,
+      // titleColor: Color.fromARGB(255, 76, 175, 80), // Green text color
+      // contextual: true,
     );
 
     const AndroidNotificationAction medForgotAction = AndroidNotificationAction(
       medForgotActionId,
-      '❌ I Forgot',
+      'I Forgot',
       cancelNotification: true, // This will dismiss the notification when tapped
-      titleColor: Color.fromARGB(255, 244, 67, 54), // Red text color
-      contextual: true,
+      // titleColor: Color.fromARGB(255, 244, 67, 54), // Red text color
+      // contextual: true,
     );// Android details
     const androidDetails = AndroidNotificationDetails(
       "daily_medicine_reminder",

@@ -684,5 +684,5 @@ def try_compact_date(digits):
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))  # Use Cloud Run's PORT
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
