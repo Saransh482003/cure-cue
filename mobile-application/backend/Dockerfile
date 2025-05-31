@@ -13,6 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy your application code
 COPY . .
-
+ENV PORT=8080
 # Start command (adjust based on your app)
 CMD ["python", "app.py"]
