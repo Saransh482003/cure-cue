@@ -250,9 +250,9 @@ def addPrescription():
                 "recommended_dosage": form["recommended_dosage"],
                 "side_effects": form["side_effects"]
             }
-            add_med = requests.post("http://localhost:8000/add-medicine", json=add_med_body)
+            add_med = requests.post("http://localhost:8080/add-medicine", json=add_med_body)
             if add_med.status_code == 200:
-                add_pres = requests.post("http://localhost:8000/add-prescription", json=form)
+                add_pres = requests.post("http://localhost:8080/add-prescription", json=form)
                 if add_pres.status_code == 200:
                     return "Successfully Added", 200
                 else:
@@ -349,7 +349,7 @@ def transcribe():
     # print(response, type(response))
     # response = eval(response.text)
 
-    name_matches = requests.get(f"http://localhost:8000/get-similar-names?med_name={response['med_name']}").json()["matches"]
+    name_matches = requests.get(f"http://localhost:8080/get-similar-names?med_name={response['med_name']}").json()["matches"]
     response["similar-matches"] = [match[0] for match in name_matches]
 
     fetchMed = Medicines.query.filter_by(med_name=response["med_name"]).first()
@@ -511,7 +511,7 @@ def medicine_name_reader():
         json_str = response.split('```json')[1].split('```')[0].strip()
         response = json.loads(json_str)
 
-        name_matches = requests.get(f"http://localhost:8000/get-similar-names?med_name={response['medicine_name']}").json()["matches"]
+        name_matches = requests.get(f"http://localhost:8080/get-similar-names?med_name={response['medicine_name']}").json()["matches"]
         response["similar-matches"] = [match[0] for match in name_matches]
 
         fetchMed = Medicines.query.filter_by(med_name=response["medicine_name"]).first()
