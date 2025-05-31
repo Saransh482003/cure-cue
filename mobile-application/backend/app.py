@@ -530,6 +530,10 @@ def medicine_name_reader():
     except Exception as e:
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
+@app.route('/health')
+def health_check():
+    return {'status': 'healthy'}, 200
+
 
 # Auxiliary functions
 def nextID(id):
@@ -685,4 +689,4 @@ def try_compact_date(digits):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
