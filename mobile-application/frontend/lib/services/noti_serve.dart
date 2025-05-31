@@ -54,20 +54,19 @@ class NotiService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      notificationCategories: [        
-        DarwinNotificationCategory(
+      notificationCategories: [          DarwinNotificationCategory(
           'med_reminder_category',
           actions: [
             DarwinNotificationAction.plain(
               medTakenActionId,
-              'I TOOK THE MEDICATION',
+              '✅ I TOOK THE MEDICATION',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
             ),
             DarwinNotificationAction.plain(
               medForgotActionId,
-              'I Forgot',
+              '❌ I Forgot',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
@@ -98,21 +97,22 @@ class NotiService {
 
     _isInitialized = true;
   }
-  NotificationDetails _notificationDetails() {
-    // Android actions
+  NotificationDetails _notificationDetails() {    // Android actions
     const AndroidNotificationAction medTakenAction = AndroidNotificationAction(
       medTakenActionId,
-      'I TOOK THE MEDICATION',
+      '✅ I TOOK THE MEDICATION',
       cancelNotification: true, // This will dismiss the notification when tapped
+      titleColor: Color.fromARGB(255, 76, 175, 80), // Green text color
+      contextual: true,
     );
 
     const AndroidNotificationAction medForgotAction = AndroidNotificationAction(
       medForgotActionId,
-      'I Forgot',
+      '❌ I Forgot',
       cancelNotification: true, // This will dismiss the notification when tapped
-    );
-
-    // Android details
+      titleColor: Color.fromARGB(255, 244, 67, 54), // Red text color
+      contextual: true,
+    );// Android details
     const androidDetails = AndroidNotificationDetails(
       "daily_medicine_reminder",
       "Daily Medicine Reminder",
@@ -124,6 +124,7 @@ class NotiService {
       ongoing: true, // Makes notification persistent
       autoCancel: false, // Notification won't auto dismiss
       actions: [medTakenAction, medForgotAction], // Add action buttons
+      color: Color.fromARGB(255, 76, 175, 80), // Green color for positive action indication
     );
 
     // iOS details
