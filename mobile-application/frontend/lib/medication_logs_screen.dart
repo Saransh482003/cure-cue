@@ -1,7 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import 'services/medication_log_service.dart';
+import 'services/pdf_service.dart';
 import 'theme_constants.dart';
 
 class MedicationLogsScreen extends StatefulWidget {
@@ -12,10 +15,8 @@ class MedicationLogsScreen extends StatefulWidget {
 }
 
 class _MedicationLogsScreenState extends State<MedicationLogsScreen> 
-    with TickerProviderStateMixin {
-  List<Map<String, dynamic>> _logs = [];
-  Map<String, int> _stats = {};
-  bool _isLoading = true;
+    with TickerProviderStateMixin {  List<Map<String, dynamic>> _logs = [];
+  Map<String, int> _stats = {};  bool _isLoading = true;
   String _filter = 'all'; // 'all', 'taken', 'forgot'
   
   // Animation controllers
@@ -188,7 +189,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
             tabs: const [
               Tab(icon: Icon(Icons.analytics), text: 'Analysis'),
               Tab(icon: Icon(Icons.list), text: 'Logs'),
-              Tab(icon: Icon(Icons.picture_as_pdf), text: 'Download PDF'),
+              Tab(icon: Icon(Icons.picture_as_pdf), text: 'PDF Report'),
             ],
           ),
         ),
@@ -851,36 +852,81 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
       },
     );
   }
-
   // Download PDF Tab
   Widget _buildDownloadTab() {
-    return Center(
+    return SingleChildScrollView(  // Add scrollable container
+      padding: const EdgeInsets.all(20.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,  // Change from center to start
         children: [
-          Icon(Icons.picture_as_pdf, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'PDF Export',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          const SizedBox(height: 40),  // Add top spacing instead of center alignment
+          Icon(
+            Icons.picture_as_pdf,
+            size: 80,
+            color: ThemeConstants.primaryColor.withOpacity(0.6),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
           Text(
-            'PDF download functionality will be available soon',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[500]),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: null, // Disabled for now
-            icon: const Icon(Icons.download),
-            label: const Text('Generate PDF Report'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            'Generate Medication Report',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: ThemeConstants.primaryColor,
             ),
           ),
-        ],
-      ),
+          const SizedBox(height: 12),          const Text(
+            'Create a comprehensive PDF report containing:\n• Patient information\n• Medication adherence statistics\n• Complete medication logs\n• Visual summaries\n\nChoose to preview & share or save & open directly on your device.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 30),          ElevatedButton.icon(
+            onPressed: _isLoading ? null : _showPDFActionDialog,
+            icon: _isLoading 
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.picture_as_pdf),
+            label: Text(_isLoading ? 'Generating...' : 'Generate PDF Report'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeConstants.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              textStyle: const TextStyle(fontSize: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (_logs.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.blue),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Report will include ${_logs.length} medication logs',
+                      style: TextStyle(color: Colors.blue[800]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 40),  // Add bottom spacing
+        ],      ),
     );
   }
 
@@ -968,5 +1014,118 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
         ),
       ),
     );
+  }
+  // PDF Generation Methods
+  void _showPDFActionDialog() async {
+    try {
+      // Generate PDF bytes first
+      final pdfBytes = await PDFService.generateMedicationReportBytes();
+      
+      // Then show the dialog with the generated bytes
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('PDF Report Options'),
+            content: const Text('Choose how you want to handle your medication report:'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _previewPDF(pdfBytes);
+                },
+                child: const Text('Preview & Share'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _saveAndOpenPDF(pdfBytes);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ThemeConstants.primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Save & Open'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _previewPDF(Uint8List pdfBytes) async {
+    try {
+      setState(() => _isLoading = true);
+      await PDFService.previewPDF(pdfBytes);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ PDF preview opened successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error previewing PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+  Future<void> _saveAndOpenPDF(Uint8List pdfBytes) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      // Generate a unique filename with timestamp
+      final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      final fileName = 'medication_report_$timestamp.pdf';
+      
+      final filePath = await PDFService.saveAndOpenPDF(pdfBytes, fileName);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ PDF saved and opened: $filePath'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error saving PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

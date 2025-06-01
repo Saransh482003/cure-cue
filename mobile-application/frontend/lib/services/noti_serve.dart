@@ -151,14 +151,14 @@ class NotiService {
           actions: [
             DarwinNotificationAction.plain(
               medTakenActionId,
-              'I TOOK THE MEDICATION',
+              'TAKEN',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
             ),
             DarwinNotificationAction.plain(
               medForgotActionId,
-              'I Forgot',
+              'FORGOT',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
@@ -181,7 +181,7 @@ class NotiService {
   NotificationDetails _notificationDetails() {    // Android actions
     const AndroidNotificationAction medTakenAction = AndroidNotificationAction(
       medTakenActionId,
-      'I TOOK THE MEDICATION',
+      'TAKEN',
       cancelNotification: true, // This will dismiss the notification when tapped
       // titleColor: Color.fromARGB(255, 76, 175, 80), // Green text color
       // contextual: true,
@@ -189,7 +189,7 @@ class NotiService {
 
     const AndroidNotificationAction medForgotAction = AndroidNotificationAction(
       medForgotActionId,
-      'I Forgot',
+      'FORGOT',
       cancelNotification: true, // This will dismiss the notification when tapped
       // titleColor: Color.fromARGB(255, 244, 67, 54), // Red text color
       // contextual: true,
