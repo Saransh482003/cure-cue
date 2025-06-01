@@ -87,8 +87,6 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
 
   Future<void> _addPrescription() async {
     if (_medicineNameController.text.isEmpty ||
-        _dosageController.text.isEmpty ||
-        _sideEffectsController.text.isEmpty ||
         _frequencyController.text.isEmpty ||
         _expiryDateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,8 +104,8 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
           'password': widget.password,
           'user_id': widget.userId,
           'med_name': _medicineNameController.text,
-          'recommended_dosage': _dosageController.text,
-          'side_effects': _sideEffectsController.text,
+          'recommended_dosage': "None",
+          'side_effects': "None",
           'frequency': int.parse(_frequencyController.text),
           'expiry_date': _expiryDateController.text,
         }),
@@ -513,10 +511,10 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                             );
                             final medicineName =
                                 json.decode(result)["medicine_name"];
-                            final recommendedDosage =
-                                json.decode(result)["recommended_dosage"];
-                            final sideEffects =
-                                json.decode(result)["side_effects"];
+                            // final recommendedDosage =
+                            //     json.decode(result)["recommended_dosage"];
+                            // final sideEffects =
+                            //     json.decode(result)["side_effects"];
                             final List<String> similarMatches = (json.decode(result)['similar-matches'] as List<dynamic>? ?? [])
                                 .whereType<String>() // Ensure we only get strings
                                 .where((match) => match.isNotEmpty) // Filter out empty matches
@@ -525,8 +523,8 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                             if (result != null) {
                               setState(() {
                                 _medicineNameController.text = medicineName;
-                                _dosageController.text = recommendedDosage;
-                                _sideEffectsController.text = sideEffects;
+                                _dosageController.text = "None";
+                                _sideEffectsController.text = "None";
                                 _similarMatches = similarMatches;
                               });
                               print(_similarMatches.length);
@@ -534,18 +532,18 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
-                        controller: _dosageController,
-                        label: 'Recommended Dosage',
-                        icon: Icons.schedule,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
-                        controller: _sideEffectsController,
-                        label: 'Side Effects',
-                        icon: Icons.warning_amber_rounded,
-                      ),
+                      // const SizedBox(height: 16),
+                      // _buildInputField(
+                      //   controller: _dosageController,
+                      //   label: 'Recommended Dosage',
+                      //   icon: Icons.schedule,
+                      // ),
+                      // const SizedBox(height: 16),
+                      // _buildInputField(
+                      //   controller: _sideEffectsController,
+                      //   label: 'Side Effects',
+                      //   icon: Icons.warning_amber_rounded,
+                      // ),
                       const SizedBox(height: 16),
                       _buildInputField(
                         controller: _frequencyController,
@@ -553,28 +551,35 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                         icon: Icons.repeat,
                         keyboardType: TextInputType.number,
                       ),
-                      const SizedBox(height: 16),
-                      _buildInputField(
+                      const SizedBox(height: 16),                      _buildInputField(
                         controller: _expiryDateController,
                         label: 'Expiry Date',
                         icon: Icons.calendar_today,
-                        suffix: IconButton(
-                          icon: const Icon(Icons.document_scanner),
-                          onPressed: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ExpiryDateCheck(),
-                              ),
-                            );
-                            if (result != null) {
-                              setState(() {
-                                _expiryDateController.text = result +
-                                    " 00:00:00"; // Append time to match expected format
-                              });
-                            }
-                          },
-                        ),
+                        suffixIcons: [
+                          IconButton(
+                            icon: const Icon(Icons.calendar_month),
+                            tooltip: 'Select Date',
+                            onPressed: () => _selectDate(context),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.document_scanner),
+                            tooltip: 'Scan Expiry Date',
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ExpiryDateCheck(),
+                                ),
+                              );
+                              if (result != null) {
+                                setState(() {
+                                  _expiryDateController.text = result +
+                                      " 00:00:00"; // Append time to match expected format
+                                });
+                              }
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 32),
                       ElevatedButton(
@@ -611,6 +616,35 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
               ),
             ));
   }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 365)), // Default to 1 year from now
+      firstDate: DateTime.now(), // Can't select past dates
+      lastDate: DateTime.now().add(const Duration(days: 3650)), // Up to 10 years in future
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: ThemeConstants.primaryColor,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null) {
+      setState(() {
+        // Format the date as YYYY-MM-DD HH:MM:SS to match the expected format
+        _expiryDateController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')} 00:00:00";
+      });
+    }
+  }
+
   Widget buildLanguageIcon(String locale, bool isSelected) {
     final Map<String, String> languageLetters = {
       'en-US': 'A',
@@ -639,14 +673,27 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
       ),
     );
   }
-
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
     Widget? suffix,
+    List<Widget>? suffixIcons,
   }) {
+    Widget? finalSuffix;
+    
+    if (suffixIcons != null && suffixIcons.isNotEmpty) {
+      // If multiple suffix icons are provided, wrap them in a Row
+      finalSuffix = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: suffixIcons,
+      );
+    } else if (suffix != null) {
+      // Use single suffix if provided
+      finalSuffix = suffix;
+    }
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -666,7 +713,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: ThemeConstants.primaryColor),
-          suffixIcon: suffix,
+          suffixIcon: finalSuffix,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1194,8 +1241,8 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
       // Update controllers
       _medicineNameController.text = medicineName;
       _frequencyController.text = frequency;
-      _dosageController.text = dosage;
-      _sideEffectsController.text = sideEffects;
+      _dosageController.text = "None";
+      _sideEffectsController.text = "None";
 
       // Show the form with similar matches
       if (context.mounted) {
@@ -1210,20 +1257,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error processing API response')),
         );
-      }
-    }
-  }
-
-// Helper function to parse API error responses
-  String _parseApiError(http.Response response) {
-    try {
-      final errorResponse = jsonDecode(response.body) as Map<String, dynamic>;
-      return errorResponse['message']?.toString() ??
-          errorResponse['error']?.toString() ??
-          'Status code: ${response.statusCode}';
-    } catch (e) {
-      return 'Status code: ${response.statusCode}';
-    }
+      }    }
   }
 
   Future<void> _getMedicineDetails(String medicineName) async {
@@ -1235,8 +1269,8 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
         setState(() {
-          _dosageController.text = jsonResponse['recommended_dosage'] ?? '';
-          _sideEffectsController.text = jsonResponse['side_effects'] ?? '';
+          _dosageController.text = "None";
+          _sideEffectsController.text = "None";
         });
       }
     } catch (e) {

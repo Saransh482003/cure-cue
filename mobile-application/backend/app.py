@@ -232,14 +232,37 @@ def addPrescription():
     fetchMed = Medicines.query.filter_by(med_name=form["med_name"]).first()
     lastID = Prescriptions.query.order_by(Prescriptions.pres_id.desc()).first()
     next_id = nextID(lastID.pres_id) if lastID else "PRES0001"
+
+    prompt = f"""
+        I want you to recognise the date given below, for your reference today's date is {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, the date given below should be in the range of -10 years to +10 years from the today's date.
+
+        Input date: {form["expiry_date"]}
+        You have to return the date in the format "YYYY-MM-DD HH:MM:SS".
+        If the date is not in the range of -10 years to +10 years from the today's date, still return it.
+        if the HH:MM:SS is not given, you have to return the date with the time as 00:00:00.
+
+        Also for this frequency value {form["frequency"]}, you have to return the number of times a day value in integer format.
+
+        Your response should be in JSON format with the following
+        {{
+            "expiry_date": "YYYY-MM-DD HH:MM:SS",
+            "frequency": integer_value_of_frequency
+        }}
+    """
+    response = gemini_model.generate_content(prompt)
+    response = response.candidates[0].content.parts[0].text
+    print(response)
+    json_str = response.split('```json')[1].split('```')[0].strip()
+    response = json.loads(json_str)
+    print(response)
     if fetchUser:
         if fetchMed:
             addPres = Prescriptions(
                 pres_id=next_id,
                 med_id=fetchMed.med_id,
                 user_id=fetchUser.user_id,
-                frequency=form["frequency"],
-            expiry_date=datetime.strptime(form["expiry_date"], "%Y-%m-%d %H:%M:%S")
+                frequency= int(response["frequency"]) if type(response["frequency"])!=int else response["frequency"],
+                expiry_date=datetime.strptime(response["expiry_date"], "%Y-%m-%d %H:%M:%S")
             )
             db.session.add(addPres)
             db.session.commit()

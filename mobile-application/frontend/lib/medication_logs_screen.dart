@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import 'services/medication_log_service.dart';
 import 'services/pdf_service.dart';
 import 'theme_constants.dart';
@@ -189,7 +188,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
             tabs: const [
               Tab(icon: Icon(Icons.analytics), text: 'Analysis'),
               Tab(icon: Icon(Icons.list), text: 'Logs'),
-              Tab(icon: Icon(Icons.picture_as_pdf), text: 'PDF Report'),
+              Tab(icon: Icon(Icons.picture_as_pdf), text: 'Save & Open PDF'),
             ],
           ),
         ),
@@ -874,8 +873,9 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               color: ThemeConstants.primaryColor,
             ),
           ),
-          const SizedBox(height: 12),          const Text(
-            'Create a comprehensive PDF report containing:\n• Patient information\n• Medication adherence statistics\n• Complete medication logs\n• Visual summaries\n\nChoose to preview & share or save & open directly on your device.',
+          const SizedBox(height: 12),
+          const Text(
+            'Create a comprehensive PDF report containing:\n• Patient information\n• Medication adherence statistics\n• Complete medication logs\n• Visual summaries',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -883,7 +883,8 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 30),          ElevatedButton.icon(
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
             onPressed: _isLoading ? null : _showPDFActionDialog,
             icon: _isLoading 
               ? const SizedBox(
@@ -891,8 +892,8 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.picture_as_pdf),
-            label: Text(_isLoading ? 'Generating...' : 'Generate PDF Report'),
+              : const Icon(Icons.download),
+            label: Text(_isLoading ? 'Generating...' : 'Save & Open PDF Report'),
             style: ElevatedButton.styleFrom(
               backgroundColor: ThemeConstants.primaryColor,
               foregroundColor: Colors.white,
@@ -926,9 +927,11 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               ),
             ),
           const SizedBox(height: 40),  // Add bottom spacing
-        ],      ),
+        ],
+      ),
     );
   }
+
 
   @override
   void dispose() {
@@ -1013,9 +1016,9 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
           ],
         ),
       ),
-    );
-  }
-  // PDF Generation Methods
+    );  }
+
+  // Fix the method signature and implementation
   void _showPDFActionDialog() async {
     try {
       // Generate PDF bytes first
@@ -1098,12 +1101,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
   Future<void> _saveAndOpenPDF(Uint8List pdfBytes) async {
     try {
       setState(() => _isLoading = true);
-      
-      // Generate a unique filename with timestamp
-      final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
-      final fileName = 'medication_report_$timestamp.pdf';
-      
-      final filePath = await PDFService.saveAndOpenPDF(pdfBytes, fileName);
+      final filePath = await PDFService.saveAndOpenPDF(pdfBytes, 'medication_report.pdf');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
