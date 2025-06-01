@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'services/medication_log_service.dart';
-import 'services/noti_serve.dart';
 import 'theme_constants.dart';
 
 class MedicationLogsScreen extends StatefulWidget {
@@ -12,14 +11,16 @@ class MedicationLogsScreen extends StatefulWidget {
   State<MedicationLogsScreen> createState() => _MedicationLogsScreenState();
 }
 
-class _MedicationLogsScreenState extends State<MedicationLogsScreen> with TickerProviderStateMixin {
+class _MedicationLogsScreenState extends State<MedicationLogsScreen> 
+    with TickerProviderStateMixin {
   List<Map<String, dynamic>> _logs = [];
   Map<String, int> _stats = {};
   bool _isLoading = true;
   String _filter = 'all'; // 'all', 'taken', 'forgot'
   
-  // Animation controller for swipe indicator
+  // Animation controllers
   late AnimationController _swipeIndicatorController;
+  late TabController _tabController;
   
   // Track drag state for visual feedback
   bool _isDragging = false;
@@ -28,6 +29,9 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
   @override
   void initState() {
     super.initState();
+    
+    // Initialize tab controller with 3 tabs
+    _tabController = TabController(length: 3, vsync: this);
     
     // Initialize animation controller for swipe indicator
     _swipeIndicatorController = AnimationController(
@@ -39,43 +43,13 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
     _swipeIndicatorController.repeat(reverse: true);
     
     _loadLogs();
-  }    Future<void> _loadLogs() async {
+  }  Future<void> _loadLogs() async {
     print('🔄 Loading medication logs...');
     setState(() => _isLoading = true);
     
     try {
-      // DEBUG: Check what keys exist in storage
-      final prefs = await SharedPreferences.getInstance();
-      final allKeys = prefs.getKeys();
-      print('🔍 ALL STORAGE KEYS IN UI SCREEN: $allKeys');
-      
-      // Check if notification context marker exists
-      final notifMarker = prefs.getString('notification_context_active');
-      if (notifMarker != null) {
-        print('✅ NOTIFICATION CONTEXT MARKER FOUND: $notifMarker');
-        print('✅ UI and Notification contexts are SYNCHRONIZED');
-      } else {
-        print('❌ NO NOTIFICATION CONTEXT MARKER - contexts may be isolated');
-      }
-      
-      // Check the exact key we're using
-      final ourData = prefs.getString('medication_logs');
-      print('🔍 MEDICATION_LOGS KEY DATA LENGTH: ${ourData?.length}');
-      
-      // Check if there are other medication-related keys
-      for (String key in allKeys) {
-        if (key.toLowerCase().contains('med') || key.toLowerCase().contains('log')) {
-          final value = prefs.getString(key);
-          print('🔍 RELATED KEY "$key": ${value?.length} chars');
-        }
-      }
-      
       List<Map<String, dynamic>> logs = await MedicationLogService.getMedicationLogs();
       print('📦 LOGS FROM SERVICE: ${logs.length} total logs');
-      if (logs.isNotEmpty) {
-        print('📦 LATEST LOG: ${logs.first}');
-      }
-      print('📊 TOTAL LOGS COUNT: ${logs.length}');
       
       // Apply filter if needed
       if (_filter != 'all') {
@@ -85,27 +59,11 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
       
       final stats = await MedicationLogService.getActionStats();
       
-      // Debug prints to console
-      print('📊 LOGS DEBUG: Total logs found: ${logs.length}');
-      print('📊 FILTER: Current filter is: $_filter');
-      print('📊 STATS DEBUG: $stats');
-      
       if (logs.isNotEmpty) {
-        // Print ALL logs for debugging
-        print('📋 ALL LOGS:');
-        for (int i = 0; i < logs.length; i++) {
-          print('📊 LOG $i: ${logs[i]}');
-        }
-        
         // Sort logs by action time (most recent first)
         logs.sort((a, b) => 
           DateTime.parse(b['actionTime']).compareTo(DateTime.parse(a['actionTime']))
         );
-      } else {
-        print('❌ NO LOGS FOUND - checking storage directly...');
-        // if (rawData != null && rawData.isNotEmpty) {
-        //   print('⚠️ Storage has data but service returned empty - potential parsing issue');
-        // }
       }
       
       if (mounted) {
@@ -114,9 +72,6 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
           _stats = stats;
           _isLoading = false;
         });
-        
-        print('📊 UI UPDATE: Set ${_logs.length} logs in state');
-        print('📊 UI STATE LOGS: $_logs');
       }
     } catch (e) {
       print('❌ ERROR loading logs: $e');
@@ -129,52 +84,123 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
     }
   }
 
-  // Add this method to _MedicationLogsScreenState
-  Future<void> _testDirectStorage() async {
-    print('🧪 Testing direct storage...');
-    
-    try {
-      // Test the service directly
-      await MedicationLogService.logMedicationAction(
-        action: 'taken',
-        medicineName: 'Direct Test Medicine',
-        reminderTime: DateTime.now(),
-        actionTime: DateTime.now(),
-      );
-      
-      print('✅ Direct log added successfully');
-      
-      // Try to retrieve immediately
-      List<Map<String, dynamic>> logs = await MedicationLogService.getMedicationLogs();
-      print('📋 Retrieved logs: ${logs.length}');
-      
-      for (var log in logs) {
-        print('📝 Log: $log');
-      }
-      
-    } catch (e) {
-      print('❌ Error in direct storage test: $e');
-    }
-  }
   String _formatDateTime(String dateTimeStr) {
     final dateTime = DateTime.parse(dateTimeStr);
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
+  String _formatDate(String dateTimeStr) {
+    final dateTime = DateTime.parse(dateTimeStr);
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
   // Navigate back to dashboard with smooth transition
   void _navigateBackToDashboard() {
-    // Add haptic feedback for better UX
     HapticFeedback.lightImpact();
-    
     Navigator.of(context).pop();
+  }
+
+  // Group logs by date for better organization
+  Map<String, List<Map<String, dynamic>>> _groupLogsByDate() {
+    Map<String, List<Map<String, dynamic>>> groupedLogs = {};
+    
+    for (var log in _logs) {
+      String date = _formatDate(log['actionTime']);
+      if (!groupedLogs.containsKey(date)) {
+        groupedLogs[date] = [];
+      }
+      groupedLogs[date]!.add(log);
+    }
+    
+    return groupedLogs;
+  }
+
+  // Generate weekly data for charts
+  List<FlSpot> _getWeeklyTakenData() {
+    Map<int, int> weeklyData = {};
+    final now = DateTime.now();
+      // Initialize the last 7 days
+    for (int i = 6; i >= 0; i--) {
+      weeklyData[6 - i] = 0;
+    }
+    
+    // Count taken medications for each day
+    for (var log in _logs) {
+      if (log['action'] == 'taken') {
+        final logDate = DateTime.parse(log['actionTime']);
+        final daysDiff = now.difference(logDate).inDays;
+        if (daysDiff >= 0 && daysDiff < 7) {
+          weeklyData[6 - daysDiff] = (weeklyData[6 - daysDiff] ?? 0) + 1;
+        }
+      }
+    }
+    
+    return weeklyData.entries.map((e) => FlSpot(e.key.toDouble(), e.value.toDouble())).toList();
+  }
+
+  // Get monthly adherence data
+  List<BarChartGroupData> _getMonthlyAdherenceData() {
+    Map<int, Map<String, int>> monthlyData = {};
+    final now = DateTime.now();
+    
+    // Initialize the last 4 weeks
+    for (int i = 3; i >= 0; i--) {
+      monthlyData[3 - i] = {'taken': 0, 'forgot': 0};
+    }
+    
+    // Count medications for each week
+    for (var log in _logs) {
+      final logDate = DateTime.parse(log['actionTime']);
+      final weeksDiff = (now.difference(logDate).inDays / 7).floor();
+      if (weeksDiff >= 0 && weeksDiff < 4) {
+        final weekIndex = 3 - weeksDiff;
+        monthlyData[weekIndex]![log['action']] = 
+          (monthlyData[weekIndex]![log['action']] ?? 0) + 1;
+      }
+    }
+    
+    return monthlyData.entries.map((e) => 
+      BarChartGroupData(
+        x: e.key,
+        barRods: [
+          BarChartRodData(
+            toY: e.value['taken']!.toDouble(),
+            color: Colors.green,
+            width: 16,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          BarChartRodData(
+            toY: e.value['forgot']!.toDouble(),
+            color: Colors.red,
+            width: 16,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ],
+      )
+    ).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        if (details.velocity.pixelsPerSecond.dx > 0) {
-          // Swipe right detected, navigate back to dashboard
+      onHorizontalDragStart: (DragStartDetails details) {
+        setState(() {
+          _isDragging = true;
+          _dragOffset = 0.0;
+        });
+      },
+      onHorizontalDragUpdate: (DragUpdateDetails details) {
+        setState(() {
+          _dragOffset = details.localPosition.dx;
+        });
+      },
+      onHorizontalDragEnd: (DragEndDetails details) {
+        setState(() {
+          _isDragging = false;
+          _dragOffset = 0.0;
+        });
+        
+        if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
           _navigateBackToDashboard();
         }
       },
@@ -182,103 +208,19 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
         appBar: AppBar(
           title: const Text('Medication Logs'),
           backgroundColor: ThemeConstants.primaryColor,
-          foregroundColor: Colors.white,        
+          foregroundColor: Colors.white,
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            tabs: const [
+              Tab(icon: Icon(Icons.analytics), text: 'Analysis'),
+              Tab(icon: Icon(Icons.list), text: 'Logs'),
+              Tab(icon: Icon(Icons.picture_as_pdf), text: 'Export'),
+            ],
+          ),
           actions: [
-            // Test storage button
-            // IconButton(
-            //   icon: const Icon(Icons.storage),
-            //   tooltip: 'Test Storage',
-            //   onPressed: () async {
-            //     await _testDirectStorage();
-            //     if (mounted) {
-            //       ScaffoldMessenger.of(context).showSnackBar(
-            //         const SnackBar(content: Text('Storage test completed - check console')),
-            //       );
-            //     }
-            //   },
-            // ),          // Test notification button
-            IconButton(
-              icon: const Icon(Icons.notification_add),
-              tooltip: 'Test Notification Actions',
-              onPressed: () async {
-                try {
-                  await NotiService().testNotificationActions();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Test notification created - tap action buttons!')),
-                    );
-                  }
-                } catch (e) {
-                  print('❌ Error creating test notification: $e');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-            ),
-            // Test context sync button
-            IconButton(
-              icon: const Icon(Icons.sync),
-              tooltip: 'Test Context Sync',
-              onPressed: () async {
-                try {
-                  print('🧪 Testing context synchronization...');
-                  await NotiService().testContextSynchronization();
-                  await _loadLogs(); // Refresh logs after test
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Context sync test completed - check console and logs!')),
-                    );
-                  }
-                } catch (e) {
-                  print('❌ Error in context sync test: $e');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Sync test error: $e')),
-                    );
-                  }
-                }
-              },
-            ),
-            // Debug button to fetch logs from storage
-            IconButton(
-              onPressed: () async {
-                try {
-                  print('🔄 Fetching logs from device storage...');
-                  
-                  // Force refresh the logs display by fetching from storage
-                  await _loadLogs();
-                  
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Fetched ${_logs.length} logs from storage')),
-                    );
-                  }
-                } catch (e) {
-                  print('❌ Error fetching logs: $e');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error fetching logs: $e')),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Fetch logs from storage',
-            ),
-            IconButton(
-              icon: const Icon(Icons.storage),
-              tooltip: 'Test Storage',
-              onPressed: () async {
-                await _testDirectStorage();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Storage test completed - check console')),
-                );
-              },
-            ),
-            SizedBox(width: 8), // Add some spacing
             PopupMenuButton<String>(
               onSelected: (value) {
                 setState(() => _filter = value);
@@ -291,195 +233,95 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
               ],
               child: const Icon(Icons.filter_list),
             ),
-            IconButton(
-              onPressed: () async {
-                final result = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Clear Logs'),
-                    content: const Text('Are you sure you want to clear all medication logs? This action cannot be undone.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Clear', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
-                
-                if (result == true) {
-                  // await MedicationLogService.clearLogs();
-                  _loadLogs();
-                }
-              },
-              icon: const Icon(Icons.delete_outline),
-            ),
           ],
-        ),        body: GestureDetector(
-          onHorizontalDragStart: (DragStartDetails details) {
-            setState(() {
-              _isDragging = true;
-              _dragOffset = 0.0;
-            });
-          },
-          onHorizontalDragUpdate: (DragUpdateDetails details) {
-            setState(() {
-              _dragOffset = details.localPosition.dx;
-            });
-          },
-          onHorizontalDragEnd: (DragEndDetails details) {
-            setState(() {
-              _isDragging = false;
-              _dragOffset = 0.0;
-            });
-            
-            // Check if the swipe was to the right (positive velocity) and with sufficient speed
-            if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
-              _navigateBackToDashboard();
-            }
-          },
-          child: Transform.translate(
-            offset: Offset(_isDragging ? _dragOffset * 0.1 : 0, 0), // Subtle drag feedback
-            child: Stack(
-              children: [
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : Column(
-                children: [
-                  // Stats Card
-                  if (_stats.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.all(16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatItem('Total', _stats['total'].toString(), Colors.blue),
-                          _buildStatItem('Taken', _stats['taken'].toString(), Colors.green),
-                          _buildStatItem('Forgot', _stats['forgot'].toString(), Colors.red),
-                        ],
-                      ),
+        ),
+        body: Transform.translate(
+          offset: Offset(_isDragging ? _dragOffset * 0.1 : 0, 0),
+          child: Stack(
+            children: [
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildAnalysisTab(),
+                        _buildLogsTab(),
+                        _buildExportTab(),
+                      ],
                     ),
-                
-                  // Logs List
-                  Expanded(
-                    child: _logs.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.medication, size: 64, color: Colors.grey[400]),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No medication logs found',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Logs will appear here when you interact with medication reminders',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey[500]),
-                                ),
-                              ],
+              // Animated swipe indicator
+              Positioned(
+                bottom: 20,
+                left: 20,
+                child: AnimatedBuilder(
+                  animation: _swipeIndicatorController,
+                  builder: (context, child) {
+                    final animationValue = (_swipeIndicatorController.value * 0.7) + 0.3;
+                    
+                    return Opacity(
+                      opacity: _isDragging ? 1.0 : animationValue,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _isDragging 
+                              ? ThemeConstants.primaryColor.withOpacity(0.9)
+                              : Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _logs.length,
-                            itemBuilder: (context, index) {
-                              final log = _logs[index];
-                              final isLastItem = index == _logs.length - 1;
-                                return Container(
-                                margin: EdgeInsets.only(bottom: isLastItem ? 16 : 8),
-                                child: _buildLogItem(log),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-                // Animated swipe indicator - positioned at bottom left
-                Positioned(
-                  bottom: 20,
-                  left: 20,
-                  child: AnimatedBuilder(
-                    animation: _swipeIndicatorController,
-                    builder: (context, child) {
-                      // Create a smooth pulsing animation using the controller value
-                      final animationValue = (_swipeIndicatorController.value * 0.7) + 0.3;
-                      
-                      return Opacity(
-                        opacity: _isDragging ? 1.0 : animationValue,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _isDragging 
-                                ? ThemeConstants.primaryColor.withOpacity(0.9)
-                                : Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Transform.translate(
+                              offset: Offset(
+                                _isDragging 
+                                    ? _dragOffset * 0.05 
+                                    : animationValue * 3, 
+                                0
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Transform.translate(
-                                offset: Offset(
-                                  _isDragging 
-                                      ? _dragOffset * 0.05 
-                                      : animationValue * 3, 
-                                  0
-                                ),
-                                child: Icon(
-                                  _isDragging ? Icons.touch_app : Icons.arrow_forward_ios,
-                                  color: Colors.white,
-                                  size: 12,
-                                ),
+                              child: Icon(
+                                _isDragging ? Icons.touch_app : Icons.arrow_forward_ios,
+                                color: Colors.white,
+                                size: 12,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isDragging ? 'Release to go back' : 'Swipe right to go back',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isDragging ? 'Release to go back' : 'Swipe right to go back',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
-                            ],
-                          ),
-                        ),                      );
-                    },
-                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),    );
+      ),
+    );
   }
 
   @override
   void dispose() {
     _swipeIndicatorController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
+  // Helper method to build stat items
   Widget _buildStatItem(String label, String value, Color color) {
     return Column(
       children: [
@@ -502,6 +344,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
     );
   }
 
+  // Helper method to build log items
   Widget _buildLogItem(Map<String, dynamic> log) {
     final action = log['action'];
     final medicineName = log['medicineName'];
@@ -551,7 +394,463 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
-              ),            ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Analysis Tab with Charts
+  Widget _buildAnalysisTab() {
+    if (_logs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.analytics, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No data for analysis',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Charts will appear here once you have medication logs',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Overall Stats Card
+          _buildOverallStatsCard(),
+          const SizedBox(height: 20),
+          
+          // Weekly Trend Chart
+          _buildWeeklyTrendCard(),
+          const SizedBox(height: 20),
+          
+          // Adherence Rate Pie Chart
+          _buildAdherenceRateCard(),
+          const SizedBox(height: 20),
+          
+          // Monthly Bar Chart
+          _buildMonthlyBarCard(),
+        ],
+      ),
+    );
+  }
+
+  // Logs Tab with Day Breaks
+  Widget _buildLogsTab() {
+    if (_logs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.medication, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No medication logs found',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Logs will appear here when you interact with medication reminders',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final groupedLogs = _groupLogsByDate();
+    final sortedDates = groupedLogs.keys.toList()
+      ..sort((a, b) => DateTime.parse(b.split('/').reversed.join('-'))
+          .compareTo(DateTime.parse(a.split('/').reversed.join('-'))));
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: sortedDates.length,
+      itemBuilder: (context, index) {
+        final date = sortedDates[index];
+        final dayLogs = groupedLogs[date]!;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: ThemeConstants.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: ThemeConstants.primaryColor.withOpacity(0.3)),
+              ),
+              child: Text(
+                date,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: ThemeConstants.primaryColor,
+                ),
+              ),
+            ),
+            
+            // Logs for this day
+            ...dayLogs.map((log) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: _buildLogItem(log),
+            )),
+            
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
+
+  // Export Tab (placeholder)
+  Widget _buildExportTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.picture_as_pdf, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'PDF Export',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Export functionality coming soon',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: null, // Disabled for now
+            icon: const Icon(Icons.download),
+            label: const Text('Download PDF'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Overall Stats Card
+  Widget _buildOverallStatsCard() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Overall Statistics',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: ThemeConstants.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('Total', _stats['total'].toString(), Colors.blue),
+                _buildStatItem('Taken', _stats['taken'].toString(), Colors.green),
+                _buildStatItem('Missed', _stats['forgot'].toString(), Colors.red),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Weekly Trend Card
+  Widget _buildWeeklyTrendCard() {
+    final weeklyData = _getWeeklyTakenData();
+    
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Weekly Adherence Trend',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: ThemeConstants.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                          return Text(
+                            days[value.toInt() % 7],
+                            style: const TextStyle(fontSize: 12),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true),
+                    ),
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: true),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: weeklyData,
+                      isCurved: true,
+                      color: Colors.green,
+                      barWidth: 3,
+                      dotData: FlDotData(show: true),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: Colors.green.withOpacity(0.2),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Adherence Rate Card
+  Widget _buildAdherenceRateCard() {
+    final taken = _stats['taken'] ?? 0;
+    final total = _stats['total'] ?? 1;
+    final adherenceRate = total > 0 ? (taken / total) * 100 : 0.0;
+    
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Adherence Rate',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: ThemeConstants.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 150,
+                    child: PieChart(
+                      PieChartData(
+                        sections: [
+                          PieChartSectionData(
+                            value: taken.toDouble(),
+                            color: Colors.green,
+                            title: '${taken}',
+                            radius: 60,
+                            titleStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          PieChartSectionData(
+                            value: (total - taken).toDouble(),
+                            color: Colors.red,
+                            title: '${total - taken}',
+                            radius: 60,
+                            titleStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 40,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        '${adherenceRate.toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: adherenceRate >= 80 ? Colors.green : 
+                                 adherenceRate >= 60 ? Colors.orange : Colors.red,
+                        ),
+                      ),
+                      const Text(
+                        'Adherence Rate',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: const BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Taken', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Missed', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Monthly Bar Chart Card
+  Widget _buildMonthlyBarCard() {
+    final monthlyData = _getMonthlyAdherenceData();
+    
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Monthly Overview',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: ThemeConstants.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: BarChart(
+                BarChartData(
+                  gridData: FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                          return Text(
+                            weeks[value.toInt() % 4],
+                            style: const TextStyle(fontSize: 12),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true),
+                    ),
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  borderData: FlBorderData(show: true),
+                  barGroups: monthlyData,
+                  groupsSpace: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  color: Colors.green,
+                ),
+                const SizedBox(width: 8),
+                const Text('Taken', style: TextStyle(fontSize: 12)),
+                const SizedBox(width: 16),
+                Container(
+                  width: 12,
+                  height: 12,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 8),
+                const Text('Missed', style: TextStyle(fontSize: 12)),
+              ],
+            ),
           ],
         ),
       ),
