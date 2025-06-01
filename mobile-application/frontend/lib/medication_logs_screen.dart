@@ -185,18 +185,18 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
           foregroundColor: Colors.white,        
           actions: [
             // Test storage button
-            IconButton(
-              icon: const Icon(Icons.storage),
-              tooltip: 'Test Storage',
-              onPressed: () async {
-                await _testDirectStorage();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Storage test completed - check console')),
-                  );
-                }
-              },
-            ),          // Test notification button
+            // IconButton(
+            //   icon: const Icon(Icons.storage),
+            //   tooltip: 'Test Storage',
+            //   onPressed: () async {
+            //     await _testDirectStorage();
+            //     if (mounted) {
+            //       ScaffoldMessenger.of(context).showSnackBar(
+            //         const SnackBar(content: Text('Storage test completed - check console')),
+            //       );
+            //     }
+            //   },
+            // ),          // Test notification button
             IconButton(
               icon: const Icon(Icons.notification_add),
               tooltip: 'Test Notification Actions',
@@ -278,6 +278,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> with Ticker
                 );
               },
             ),
+            SizedBox(width: 8), // Add some spacing
             PopupMenuButton<String>(
               onSelected: (value) {
                 setState(() => _filter = value);

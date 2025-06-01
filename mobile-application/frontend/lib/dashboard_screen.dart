@@ -245,18 +245,21 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             },
           ),
         ],
-      ),      body: GestureDetector(
-        onHorizontalDragStart: (DragStartDetails details) {
+      ),      body: GestureDetector(        onHorizontalDragStart: (DragStartDetails details) {
           setState(() {
-            _isDragging = true;
+            _isDragging = false;
             _dragOffset = 0.0;
           });
         },
         onHorizontalDragUpdate: (DragUpdateDetails details) {
-          setState(() {
-            _dragOffset = details.localPosition.dx;
-          });
-        },        onHorizontalDragEnd: (DragEndDetails details) {
+          // Only track left swipes (negative delta)
+          if (details.delta.dx < 0) {
+            setState(() {
+              _isDragging = true;
+              _dragOffset = details.localPosition.dx;
+            });
+          }
+        },onHorizontalDragEnd: (DragEndDetails details) {
           setState(() {
             _isDragging = false;
             _dragOffset = 0.0;
