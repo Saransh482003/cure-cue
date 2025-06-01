@@ -1124,8 +1124,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             const SizedBox(height: 20),            
             _buildPrescriptionDetail(
               icon: Icons.event_available,
-              title: 'Expiry Date',
-              value: expiryDate,
+              title: 'Expiry Date : ',
+              value: _formatExpiryDate(expiryDate),
               isExpired: isExpired, // Pass the isExpired flag
             ),
             const SizedBox(height: 1),            
@@ -1851,6 +1851,37 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       ),
     );
   }
+  String _formatExpiryDate(String expiryDate) {
+    try {
+      // Parse the date string from "dd-mm-yyyy" format
+      List<String> parts = expiryDate.split('-');
+      if (parts.length != 3) {
+        return expiryDate; // Return original if format is unexpected
+      }
+      
+      int day = int.parse(parts[0]);
+      int month = int.parse(parts[1]);
+      int year = int.parse(parts[2]);
+      
+      // Create DateTime object
+      DateTime date = DateTime(year, month, day);
+      
+      // Format to "dd mmm yyyy" format
+      List<String> months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      
+      String formattedDay = day.toString().padLeft(2, '0');
+      String monthName = months[month - 1];
+      String formattedYear = year.toString();
+      
+      return '$formattedDay $monthName $formattedYear';
+    } catch (e) {
+      // If parsing fails, return the original value
+      return expiryDate;
+    }
+  }
   Widget _buildPrescriptionDetail({
     required IconData icon,
     required String title,
@@ -1864,7 +1895,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     Color? iconColor =
         isExpired ? Colors.red[700] : Colors.grey[600]; // Modified
 
-    if (title == 'Expiry Date' && value.isNotEmpty) {
+    if (title == 'Expiry Date : ' && value.isNotEmpty) {
       try {
         final parts = value.split(' ');
         if (parts.length == 3) {
@@ -1905,7 +1936,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         debugPrint('Error parsing date: $e');
       }
     }    // Standardized styling for Expiry Date (matching Medicine Information style)
-    if (title == 'Expiry Date') {
+    if (title == 'Expiry Date : ') {
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
@@ -1923,9 +1954,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 color: isExpired ? Colors.red[700] : ThemeConstants.primaryColor,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 15),
             Expanded(
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -1936,7 +1967,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       color: isExpired ? Colors.red[700] : Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(width: 2),
                   Text(
                     displayValue,
                     style: TextStyle(
@@ -1945,7 +1976,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     ),
                   ),
                   if (daysRemaining.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(width: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
@@ -2006,11 +2037,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 style: TextStyle(
                   fontSize: 14,
                   color: textColor,
-                  fontWeight: title == 'Expiry Date' ? FontWeight.w500 : null,
+                  fontWeight: title == 'Expiry Date : ' ? FontWeight.w500 : null,
                 ),
               ),
               if (daysRemaining.isNotEmpty) ...[
-                const SizedBox(height: 2),
+                // const SizedBox(height: 2),
                 Text(
                   daysRemaining,
                   style: TextStyle(

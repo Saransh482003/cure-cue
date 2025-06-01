@@ -248,7 +248,7 @@ class PDFService {  static Future<Uint8List> generateMedicationReport({
   static pw.Widget _buildSummarySection(Map<String, int> stats, int adherenceRate) {
     final totalMedications = stats['total'] ?? 0;
     final takenMedications = stats['taken'] ?? 0;
-    final missedMedications = stats['missed'] ?? 0;
+    final missedMedications = stats['forgot'] ?? 0;
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -396,7 +396,7 @@ class PDFService {  static Future<Uint8List> generateMedicationReport({
               final stats = entry.value;
               final total = stats['total'] ?? 0;
               final taken = stats['taken'] ?? 0;
-              final missed = stats['missed'] ?? 0;
+              final missed = stats['forgot'] ?? 0;
               final rate = total > 0 ? (taken / total * 100).round() : 0;
               
               return pw.TableRow(

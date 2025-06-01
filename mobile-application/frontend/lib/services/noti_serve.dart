@@ -158,7 +158,7 @@ class NotiService {
             ),
             DarwinNotificationAction.plain(
               medForgotActionId,
-              'FORGOT',
+              'MISSED',
               options: {
                 DarwinNotificationActionOption.foreground,
               },
@@ -189,7 +189,7 @@ class NotiService {
 
     const AndroidNotificationAction medForgotAction = AndroidNotificationAction(
       medForgotActionId,
-      'FORGOT',
+      'MISSED',
       cancelNotification: true, // This will dismiss the notification when tapped
       // titleColor: Color.fromARGB(255, 244, 67, 54), // Red text color
       // contextual: true,

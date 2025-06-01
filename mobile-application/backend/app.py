@@ -27,6 +27,10 @@ from rapidfuzz import process, fuzz
 # Type Hints
 from typing import Dict, Any, List
 import requests
+# Email functionality
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
@@ -700,8 +704,7 @@ def try_compact_date(digits):
         if 1 <= month <= 12 and 1 <= day <= 31:
             return f"{year}-{month:02d}-{day:02d}"
     
-    # Try MMDDYYYY
-    if digits[4:].isdigit() and 2000 <= int(digits[4:]) <= 2050:
+    # Try MMDDYYYY    if digits[4:].isdigit() and 2000 <= int(digits[4:]) <= 2050:
         month, day, year = int(digits[:2]), int(digits[2:4]), int(digits[4:8])
         if 1 <= month <= 12 and 1 <= day <= 31:
             return f"{year}-{month:02d}-{day:02d}"
@@ -709,7 +712,93 @@ def try_compact_date(digits):
     return None
     
 
+@app.route('/send-email', methods=['POST'])
+def send_email():
+    """
+    Send email to a list of recipients
+    Expected JSON payload:
+    {
+        "emails": ["email1@example.com", "email2@example.com"],
+        "subject": "Email subject",
+        "message": "Email message content",
+        "sender_email": "sender@example.com",
+        "sender_password": "password"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['emails', 'subject', 'message', 'sender_email', 'sender_password']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        with open("authorization.json", "r") as f:
+            authorizaion = json.load(f)
+        emails = data['emails']
+        subject = data['subject']
+        message = data['message']
+        sender_email = authorizaion['email-address']
+        sender_password = authorizaion['email-password']
+        
+        # Validate emails list
+        if not isinstance(emails, list) or len(emails) == 0:
+            return jsonify({'error': 'emails must be a non-empty list'}), 400
+        
+        # Setup email server (Gmail SMTP)
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+        
+        # Create SMTP session
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()  # Enable security
+        server.login(sender_email, sender_password)
+        
+        successful_sends = []
+        failed_sends = []
+        
+        # Send email to each recipient
+        for email in emails:
+            try:
+                # Create message
+                msg = MIMEMultipart()
+                msg['From'] = sender_email
+                msg['To'] = email
+                msg['Subject'] = subject
+                
+                # Add body to email
+                msg.attach(MIMEText(message, 'plain'))
+                
+                # Convert to string
+                text = msg.as_string()
+                
+                # Send email
+                server.sendmail(sender_email, email, text)
+                successful_sends.append(email)
+                
+            except Exception as e:
+                failed_sends.append({'email': email, 'error': str(e)})
+        
+        # Close the server
+        server.quit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Email sent to {len(successful_sends)} recipients',
+            'successful_sends': successful_sends,
+            'failed_sends': failed_sends,
+            'total_attempted': len(emails)
+        }), 200
+        
+    except smtplib.SMTPAuthenticationError:
+        return jsonify({'error': 'SMTP Authentication failed. Check email and password.'}), 401
+    except smtplib.SMTPException as e:
+        return jsonify({'error': f'SMTP error occurred: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
