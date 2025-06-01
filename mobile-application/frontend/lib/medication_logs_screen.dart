@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/medication_log_service.dart';
+import 'services/noti_serve.dart';
 import 'theme_constants.dart';
 
 class MedicationLogsScreen extends StatefulWidget {
@@ -20,7 +21,6 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
     super.initState();
     _loadLogs();
   }
-
   Future<void> _loadLogs() async {
     setState(() => _isLoading = true);
     
@@ -35,6 +35,13 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
       
       final stats = await MedicationLogService.getActionStats();
       
+      // Debug prints to console
+      print('📊 LOGS DEBUG: Total logs found: ${logs.length}');
+      print('📊 STATS DEBUG: $stats');
+      for (int i = 0; i < logs.length && i < 5; i++) {
+        print('📊 LOG $i: ${logs[i]}');
+      }
+      
       // Sort logs by action time (most recent first)
       logs.sort((a, b) => 
         DateTime.parse(b['actionTime']).compareTo(DateTime.parse(a['actionTime']))
@@ -46,6 +53,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ ERROR loading logs: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -55,6 +63,33 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
     }
   }
 
+  // Add this method to _MedicationLogsScreenState
+  Future<void> _testDirectStorage() async {
+    print('🧪 Testing direct storage...');
+    
+    try {
+      // Test the service directly
+      await MedicationLogService.logMedicationAction(
+        action: 'taken',
+        medicineName: 'Direct Test Medicine',
+        reminderTime: DateTime.now(),
+        actionTime: DateTime.now(),
+      );
+      
+      print('✅ Direct log added successfully');
+      
+      // Try to retrieve immediately
+      List<Map<String, dynamic>> logs = await MedicationLogService.getMedicationLogs();
+      print('📋 Retrieved logs: ${logs.length}');
+      
+      for (var log in logs) {
+        print('📝 Log: $log');
+      }
+      
+    } catch (e) {
+      print('❌ Error in direct storage test: $e');
+    }
+  }
   String _formatDateTime(String dateTimeStr) {
     final dateTime = DateTime.parse(dateTimeStr);
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
@@ -66,8 +101,79 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
       appBar: AppBar(
         title: const Text('Medication Logs'),
         backgroundColor: ThemeConstants.primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: Colors.white,        
         actions: [
+          // Test storage button
+          IconButton(
+            icon: const Icon(Icons.storage),
+            tooltip: 'Test Storage',
+            onPressed: () async {
+              await _testDirectStorage();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Storage test completed - check console')),
+                );
+              }
+            },
+          ),
+          // Test notification button
+          IconButton(
+            icon: const Icon(Icons.notification_add),
+            tooltip: 'Test Notification Actions',
+            onPressed: () async {
+              try {
+                await NotiService().testNotificationActions();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Test notification created - tap action buttons!')),
+                  );
+                }
+              } catch (e) {
+                print('❌ Error creating test notification: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+          ),
+          // Debug button to fetch logs from storage
+          IconButton(
+            onPressed: () async {
+              try {
+                print('🔄 Fetching logs from device storage...');
+                
+                // Force refresh the logs display by fetching from storage
+                await _loadLogs();
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Fetched ${_logs.length} logs from storage')),
+                  );
+                }
+              } catch (e) {
+                print('❌ Error fetching logs: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error fetching logs: $e')),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Fetch logs from storage',
+          ),
+          IconButton(
+            icon: const Icon(Icons.storage),
+            tooltip: 'Test Storage',
+            onPressed: () async {
+              await _testDirectStorage();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Storage test completed - check console')),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               setState(() => _filter = value);

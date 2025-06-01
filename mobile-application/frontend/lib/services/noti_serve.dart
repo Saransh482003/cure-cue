@@ -8,10 +8,55 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'medication_log_service.dart';
 
+// Global constants for action IDs
+const String medTakenActionId = 'med_taken_action';
+const String medForgotActionId = 'med_forgot_action';
+
+// Background notification response handler (must be top-level function)
+@pragma('vm:entry-point')
+Future<void> onDidReceiveNotificationResponse(NotificationResponse response) async {
+  print('🔔 Notification response received: ${response.actionId}');
+  print('🔔 Payload: ${response.payload}');
+  
+  if (response.payload == null || response.payload!.isEmpty) {
+    print('❌ No payload found in notification');
+    return;
+  }
+  
+  try {
+    Map<String, dynamic> payload = jsonDecode(response.payload!);
+    String medicineName = payload['medicine'] ?? 'Unknown Medicine';
+    String reminderTimeStr = payload['scheduled_time'] ?? DateTime.now().toIso8601String();
+    DateTime reminderTime = DateTime.parse(reminderTimeStr);
+    
+    print('🔔 Medicine: $medicineName, Time: $reminderTime');
+    
+    if (response.actionId == medTakenActionId) {
+      print('✅ Logging TAKEN action');
+      await MedicationLogService.logMedicationAction(
+        action: 'taken',
+        medicineName: medicineName,
+        reminderTime: reminderTime,
+        actionTime: DateTime.now(),
+      );
+      print('✅ TAKEN action logged successfully');
+    } else if (response.actionId == medForgotActionId) {
+      print('❌ Logging FORGOT action');
+      await MedicationLogService.logMedicationAction(
+        action: 'forgot',
+        medicineName: medicineName,
+        reminderTime: reminderTime,
+        actionTime: DateTime.now(),
+      );
+      print('❌ FORGOT action logged successfully');
+    }
+  } catch (e) {
+    print('❌ Error handling notification response: $e');
+  }
+}
+
 class NotiService {
   final notificationsPlugin = FlutterLocalNotificationsPlugin();
-  static const String medTakenActionId = 'med_taken_action';
-  static const String medForgotActionId = 'med_forgot_action';
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
@@ -80,46 +125,9 @@ class NotiService {
     var initSettings = InitializationSettings(
       android: initSettingsAndroid,
       iOS: initSettingsIOS,
-    );
-
-    await notificationsPlugin.initialize(
-      initSettings,      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        try {
-          // Parse the payload to get medicine information
-          Map<String, dynamic>? payloadData;
-          if (response.payload != null) {
-            payloadData = jsonDecode(response.payload!);
-          }
-
-          final medicineName = payloadData?['medicine'] ?? 'Unknown Medicine';
-          final scheduledTimeStr = payloadData?['scheduled_time'];
-          final reminderTime = scheduledTimeStr != null 
-              ? DateTime.parse(scheduledTimeStr)
-              : DateTime.now();
-
-          if (response.actionId == medTakenActionId) {
-            // Handle medication taken action
-            debugPrint('Medication taken confirmed: $medicineName');
-            await MedicationLogService.logMedicationAction(
-              action: 'taken',
-              medicineName: medicineName,
-              reminderTime: reminderTime,
-              actionTime: DateTime.now(),
-            );
-          } else if (response.actionId == medForgotActionId) {
-            // Handle medication forgot action
-            debugPrint('Medication forgot confirmed: $medicineName');
-            await MedicationLogService.logMedicationAction(
-              action: 'forgot',
-              medicineName: medicineName,
-              reminderTime: reminderTime,
-              actionTime: DateTime.now(),
-            );
-          }
-        } catch (e) {
-          debugPrint('Error handling notification response: $e');
-        }
-      },
+    );    await notificationsPlugin.initialize(
+      initSettings,      
+      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
     );
 
     _isInitialized = true;
@@ -359,5 +367,30 @@ class NotiService {
       // Include if it's either in the future or within the last 30 minutes
       return scheduledTime.isAfter(now.subtract(const Duration(minutes: 30)));
     }).toList();
+  }
+
+  // Test method to create a notification and test the actions
+  Future<void> testNotificationActions() async {
+    if (!_isInitialized) await initNotification();
+    
+    try {
+      final now = DateTime.now();
+      final testTime = now.add(const Duration(seconds: 5));
+      
+      await notificationsPlugin.show(
+        999, // Test notification ID
+        'TEST NOTIFICATION',
+        'Tap the buttons to test logging - Test Medicine',
+        _notificationDetails(),
+        payload: jsonEncode({
+          'medicine': 'Test Medicine',
+          'scheduled_time': testTime.toIso8601String(),
+        }),
+      );
+      
+      print('🧪 Test notification created - tap the action buttons to test logging');
+    } catch (e) {
+      print('❌ Error creating test notification: $e');
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'medication_logs_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
 import 'dart:convert';
@@ -217,8 +218,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 await _fetchReminders();
                 setState(() => _showNotificationsDropdown = true);
               }
+            },          ),
+          IconButton(
+            icon: const Icon(Icons.history, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MedicationLogsScreen(),
+                ),
+              );
             },
-          ),          IconButton(
+          ),
+          IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               // Clear stored credentials before logout
@@ -509,21 +521,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
           if (_showNotificationsDropdown) _buildNotificationsDropdown(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
+      ),      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.push(
             context,
             // MaterialPageRoute(
-            //   builder: (context) => const MedicationLogsScreen(),
+            //   builder: (context) => AddPrescriptionScreen(
+            //     username: widget.username,
+            //     password: widget.password,
+            //     userId: userData?['user_id'] ?? '',
+            //   ),
             // ),
             MaterialPageRoute(
-              builder: (context) => AddPrescriptionScreen(
-                username: widget.username,
-                password: widget.password,
-                userId: userData?['user_id'] ?? '',
-              ),
-            ),
+              builder: (context) => MedicationLogsScreen(),
+            )
           );
           if (result == true) {
             _fetchUserData();
@@ -818,27 +829,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildPrescriptionDetail(
-              icon: Icons.schedule,
-              title: 'Dosage',
-              value: recommendedDosage,
-              isExpired: isExpired, // Pass the isExpired flag
-            ),
-            const SizedBox(height: 8),            _buildPrescriptionDetail(
-              icon: Icons.warning_amber_rounded,
-              title: 'Side Effects',
-              value: sideEffects,
-              isExpired: isExpired, // Pass the isExpired flag
-            ),   
-            const SizedBox(height: 8),            
+            // const SizedBox(height: 16),
+            // _buildPrescriptionDetail(
+            //   icon: Icons.schedule,
+            //   title: 'Dosage',
+            //   value: recommendedDosage,
+            //   isExpired: isExpired, // Pass the isExpired flag
+            // ),
+            // const SizedBox(height: 8),            
+            // _buildPrescriptionDetail(
+            //   icon: Icons.warning_amber_rounded,
+            //   title: 'Side Effects',
+            //   value: sideEffects,
+            //   isExpired: isExpired, // Pass the isExpired flag
+            // ),   
+            const SizedBox(height: 20),            
             _buildPrescriptionDetail(
               icon: Icons.event_available,
               title: 'Expiry Date',
               value: expiryDate,
               isExpired: isExpired, // Pass the isExpired flag
             ),
-            const SizedBox(height: 8),            ExpansionTile(
+            const SizedBox(height: 1),            
+            ExpansionTile(
               tilePadding: EdgeInsets.zero,
               childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               leading: Container(
@@ -1558,7 +1571,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-
   Widget _buildPrescriptionDetail({
     required IconData icon,
     required String title,
@@ -1612,8 +1624,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } catch (e) {
         debugPrint('Error parsing date: $e');
       }
+    }    // Standardized styling for Expiry Date (matching Medicine Information style)
+    if (title == 'Expiry Date') {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: (isExpired ? Colors.red[700] : ThemeConstants.primaryColor)?.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: isExpired ? Colors.red[700] : ThemeConstants.primaryColor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isExpired ? Colors.red[700] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    displayValue,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isExpired ? Colors.red[600] : Colors.grey[600],
+                    ),
+                  ),
+                  if (daysRemaining.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isExpired 
+                            ? Colors.red[100] 
+                            : (daysRemaining.contains('days remaining') && int.tryParse(daysRemaining.split(' ')[0]) != null && int.parse(daysRemaining.split(' ')[0]) < 30)
+                                ? Colors.orange[100]
+                                : Colors.green[100],
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        daysRemaining,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isExpired 
+                              ? Colors.red[700] 
+                              : (daysRemaining.contains('days remaining') && int.tryParse(daysRemaining.split(' ')[0]) != null && int.parse(daysRemaining.split(' ')[0]) < 30)
+                                  ? Colors.orange[700]
+                                  : Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
+    // Default styling for other details
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

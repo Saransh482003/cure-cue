@@ -1,3 +1,6 @@
+
+import 'dart:math';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -27,16 +30,17 @@ class MedicationLogService {
     if (existingLogs.length > 1000) {
       existingLogs.removeRange(0, existingLogs.length - 1000);
     }
-    
+    print('newlogs: $newLog'); // Debug: print the new log being added
+    print(existingLogs.sublist(max(0, existingLogs.length - 5))); // Debug: print last 5 existing logs
     await prefs.setString(_logKey, jsonEncode(existingLogs));
   }
 
   static Future<List<Map<String, dynamic>>> getMedicationLogs() async {
     final prefs = await SharedPreferences.getInstance();
     final logsJson = prefs.getString(_logKey);
-    
     if (logsJson != null) {
       final List<dynamic> logsList = jsonDecode(logsJson);
+      print(logsList); // Debug: print last 5 logs
       return logsList.cast<Map<String, dynamic>>();
     }
     
@@ -93,5 +97,29 @@ class MedicationLogService {
       'forgot': forgotCount,
       'total': allLogs.length,
     };
+  }
+  // Add this debug method to check what's actually stored
+  static Future<void> debugStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Check all keys
+    Set<String> allKeys = prefs.getKeys();
+    print('🔍 All SharedPreferences keys: $allKeys');
+    
+    // Check our specific key
+    List<String>? logs = prefs.getStringList('medication_logs');
+    print('🔍 medication_logs value: $logs');
+    
+    // Try to manually add a test log
+    await logMedicationAction(
+      action: 'test',
+      medicineName: 'Debug Test',
+      reminderTime: DateTime.now(),
+      actionTime: DateTime.now(),
+    );
+    
+    // Check again
+    logs = prefs.getStringList('medication_logs');
+    print('🔍 After manual add: $logs');
   }
 }
