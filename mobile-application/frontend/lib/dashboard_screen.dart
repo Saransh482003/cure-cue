@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'medication_logs_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
@@ -23,7 +24,7 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with TickerProviderStateMixin {
   Map<String, dynamic>? userData;
   List<Map<String, dynamic>> _upcomingReminders = [];
   List<Map<String, dynamic>> _allReminders = [];
@@ -36,19 +37,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController _dosageController = TextEditingController();
   final TextEditingController _sideEffectsController = TextEditingController();
   final TextEditingController _frequencyController = TextEditingController();
-  @override
+    // Animation controller for swipe indicator
+  late AnimationController _swipeIndicatorController;
+  
+  // Track drag state for visual feedback
+  bool _isDragging = false;
+  double _dragOffset = 0.0;  @override
   void initState() {
     super.initState();
+    
+    // Initialize animation controller for swipe indicator
+    _swipeIndicatorController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    
+    // Start the animation
+    _swipeIndicatorController.repeat(reverse: true);
+    
     _fetchUserData();
     _fetchReminders();
   }
-
   @override
   void dispose() {
     _medicineNameController.dispose();
     _dosageController.dispose();
     _sideEffectsController.dispose();
     _frequencyController.dispose();
+    _swipeIndicatorController.dispose();
     super.dispose();
   }
 
@@ -216,20 +232,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 setState(() => _showNotificationsDropdown = false);
               } else {
                 await _fetchReminders();
-                setState(() => _showNotificationsDropdown = true);
-              }
+                setState(() => _showNotificationsDropdown = true);              }
             },          ),
-          IconButton(
-            icon: const Icon(Icons.history, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MedicationLogsScreen(),
-                ),
-              );
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
@@ -241,8 +245,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
         ],
-      ),
-      body: Stack(
+      ),      body: GestureDetector(
+        onHorizontalDragStart: (DragStartDetails details) {
+          setState(() {
+            _isDragging = true;
+            _dragOffset = 0.0;
+          });
+        },
+        onHorizontalDragUpdate: (DragUpdateDetails details) {
+          setState(() {
+            _dragOffset = details.localPosition.dx;
+          });
+        },        onHorizontalDragEnd: (DragEndDetails details) {
+          setState(() {
+            _isDragging = false;
+            _dragOffset = 0.0;
+          });
+          
+          // Check if the swipe was to the left (negative velocity) and with sufficient speed
+          if (details.primaryVelocity != null && details.primaryVelocity! < -300) {
+            _navigateToMedicationLogs();
+          }
+        },
+        child: Transform.translate(
+          offset: Offset(_isDragging ? _dragOffset * 0.1 : 0, 0), // Subtle drag feedback
+          child: Stack(
         children: [
           isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -513,28 +540,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                          ],                        ),
                       )
                     ],
                   ),
                 ),
           if (_showNotificationsDropdown) _buildNotificationsDropdown(),
-        ],
-      ),      floatingActionButton: FloatingActionButton.extended(
+          // Animated swipe indicator - positioned at bottom right
+          Positioned(
+            bottom: 20,
+            right: 20,            
+            child: AnimatedBuilder(
+              animation: _swipeIndicatorController,
+              builder: (context, child) {
+                // Create a smooth pulsing animation using the controller value
+                final animationValue = (_swipeIndicatorController.value * 0.7) + 0.3;
+                
+                return Opacity(
+                  opacity: _isDragging ? 1.0 : animationValue,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _isDragging 
+                          ? ThemeConstants.primaryColor.withOpacity(0.9)
+                          : Colors.black.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,                      children: [                        Text(
+                          _isDragging ? 'Release to view logs' : 'Swipe left for logs',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 8),                        
+                        Transform.translate(
+                          offset: Offset(
+                            _isDragging 
+                                ? _dragOffset * 0.05 
+                                : animationValue * 3, 
+                            0
+                          ),                          child: Icon(
+                            _isDragging ? Icons.touch_app : Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),        ],
+      ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            // MaterialPageRoute(
-            //   builder: (context) => AddPrescriptionScreen(
-            //     username: widget.username,
-            //     password: widget.password,
-            //     userId: userData?['user_id'] ?? '',
-            //   ),
-            // ),
             MaterialPageRoute(
-              builder: (context) => MedicationLogsScreen(),
-            )
+              builder: (context) => AddPrescriptionScreen(
+                username: widget.username,
+                password: widget.password,
+                userId: userData?['user_id'] ?? '',
+              ),
+            ),
           );
           if (result == true) {
             _fetchUserData();
@@ -546,6 +627,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Add Prescription',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+      ),
+    );
+  }
+  // Navigate to medication logs with smooth transition
+  void _navigateToMedicationLogs() {
+    // Add haptic feedback for better UX
+    HapticFeedback.lightImpact();
+    
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const MedicationLogsScreen(),
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Combined slide and fade transition
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOutCubic;
+
+          var slideTween = Tween(begin: begin, end: end).chain(
+            CurveTween(curve: curve),
+          );
+
+          var fadeTween = Tween(begin: 0.0, end: 1.0).chain(
+            CurveTween(curve: curve),
+          );
+
+          return SlideTransition(
+            position: animation.drive(slideTween),
+            child: FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
