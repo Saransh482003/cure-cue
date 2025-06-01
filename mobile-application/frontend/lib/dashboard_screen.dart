@@ -134,6 +134,149 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     }
   }
 
+  Future<void> _deletePrescription(String presId, String medicineName) async {
+    try {
+      // Show confirmation dialog
+      final bool? confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.delete_forever,
+                  color: Colors.red[600],
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Delete Prescription',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Are you sure you want to delete the prescription for "$medicineName"? This action cannot be undone.',
+              style: const TextStyle(fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[600],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed == true) {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          },
+        );
+
+        final response = await http.delete(
+          Uri.parse('$baseUrl/delete-prescriptions'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'user_id': userData?['user_id'],
+            'pres_id': presId,
+          }),
+        );
+
+        // Close loading dialog
+        Navigator.of(context).pop();
+
+        if (response.statusCode == 200) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('Prescription for "$medicineName" deleted successfully'),
+                ],
+              ),
+              backgroundColor: Colors.green[600],
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          
+          // Refresh the data
+          _fetchUserData();
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.white),
+                  const SizedBox(width: 8),
+                  const Text('Failed to delete prescription'),
+                ],
+              ),
+              backgroundColor: Colors.red[600],
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      Navigator.of(context).pop();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Error deleting prescription: $e'),
+            ],
+          ),
+          backgroundColor: Colors.red[600],
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   DateTime _parseExpiryDate(String date) {
     try {
       final parts = date.split('-');
@@ -926,8 +1069,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ),
                     ],
                   ),
-                ),
-                Container(
+                ),                Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -943,6 +1085,23 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           ? Colors.red[700]
                           : ThemeConstants.primaryColor, // Darker red
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Delete button
+                GestureDetector(
+                  onTap: () => _deletePrescription(presId, medicineName),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.delete_outline,
+                      color: Colors.red[600],
+                      size: 20,
                     ),
                   ),
                 ),
@@ -1522,13 +1681,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                                           ),
                                                           child: const Text(
                                                             'Confirm',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white),
+                                                            style:
+                                                                TextStyle(
+                                                                    color: Colors
+                                                                        .white),
                                                           ),
                                                         ),
                                                       ],
-                                                    ),                                                  ],
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             );
