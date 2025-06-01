@@ -326,7 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Patient Dashboard',
+          'User Dashboard',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: ThemeConstants.primaryColor,

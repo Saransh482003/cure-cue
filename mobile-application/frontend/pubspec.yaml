@@ -81,6 +81,7 @@ flutter:
     - assets/success.gif
     - assets/scanning.json
     - assets/listening.json
+    - assets/listening-blue.json
     - assets/listening-your-whispers.json
     - assets/notification_sound.wav
     - assets/logo.png

@@ -157,7 +157,7 @@ class _AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
                   width: 150,
                   height: 150,
                   child: Lottie.asset(
-                    'assets/listening.json',
+                    'assets/listening-blue.json',
                     fit: BoxFit.contain,
                   ),
                 ),
