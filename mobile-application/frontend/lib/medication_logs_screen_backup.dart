@@ -354,7 +354,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: ThemeConstants.secondaryColor,
+                color: ThemeConstants.primaryColor,
               ),
             ),
             const SizedBox(height: 16),
@@ -393,14 +393,14 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: ThemeConstants.secondaryColor,
+                color: ThemeConstants.primaryColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Average ${averagePerDay.toStringAsFixed(1)} medications taken per day this week',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 14,
                 color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
               ),
@@ -458,7 +458,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                         getTitlesWidget: (value, meta) {
                           return Text(
                             value.toInt().toString(),
-                            style: const TextStyle(fontSize: 9),
+                            style: const TextStyle(fontSize: 3),
                           );
                         },
                       ),
@@ -538,14 +538,14 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: ThemeConstants.secondaryColor,
+                color: ThemeConstants.primaryColor,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               observation,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 14,
                 color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
               ),
@@ -559,13 +559,13 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                     child: PieChart(
                       PieChartData(
                         sectionsSpace: 2,
-                        centerSpaceRadius: 30,
+                        centerSpaceRadius: 40,
                         sections: [
                           PieChartSectionData(
                             value: taken.toDouble(),
-                            color: const Color.fromARGB(255, 127, 177, 128),
+                            color: Colors.green,
                             title: '$taken',
-                            radius: 40,
+                            radius: 60,
                             titleStyle: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -576,7 +576,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                             value: (total - taken).toDouble(),
                             color: Colors.red,
                             title: '${total - taken}',
-                            radius: 40,
+                            radius: 60,
                             titleStyle: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -666,14 +666,14 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: ThemeConstants.secondaryColor,
+                color: ThemeConstants.primaryColor,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'Weekly breakdown showing taken vs missed medications over the last month',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 14,
                 color: Colors.grey,
                 fontStyle: FontStyle.italic,
               ),
@@ -722,7 +722,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                         getTitlesWidget: (value, meta) {
                           return Text(
                             value.toInt().toString(),
-                            style: const TextStyle(fontSize: 9),
+                            style: const TextStyle(fontSize: 12),
                           );
                         },
                       ),
