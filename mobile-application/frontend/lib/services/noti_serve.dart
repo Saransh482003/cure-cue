@@ -6,7 +6,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'medication_log_service.dart';
+import 'package:frontend/services/medication_log_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Global constants for action IDs
 const String medTakenActionId = 'med_taken_action';
@@ -15,8 +16,13 @@ const String medForgotActionId = 'med_forgot_action';
 // Background notification response handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> onDidReceiveNotificationResponse(NotificationResponse response) async {
+  // CRITICAL: Initialize Flutter binding for background context
+  WidgetsFlutterBinding.ensureInitialized();
+  
   print('🔔 Notification response received: ${response.actionId}');
   print('🔔 Payload: ${response.payload}');
+    // CRITICAL: Force SharedPreferences to use the same context as main app
+  await _ensureSharedContext();
   
   if (response.payload == null || response.payload!.isEmpty) {
     print('❌ No payload found in notification');
@@ -30,6 +36,9 @@ Future<void> onDidReceiveNotificationResponse(NotificationResponse response) asy
     DateTime reminderTime = DateTime.parse(reminderTimeStr);
     
     print('🔔 Medicine: $medicineName, Time: $reminderTime');
+    
+    // CRITICAL: Initialize MedicationLogService to use same context
+    await MedicationLogService.initialize();
     
     if (response.actionId == medTakenActionId) {
       print('✅ Logging TAKEN action');
@@ -50,8 +59,45 @@ Future<void> onDidReceiveNotificationResponse(NotificationResponse response) asy
       );
       print('❌ FORGOT action logged successfully');
     }
+    
+    // Verify the log was stored and can be retrieved
+    final logs = await MedicationLogService.getMedicationLogs();
+    print('🔔 VERIFICATION: ${logs.length} total logs now stored');
+    
   } catch (e) {
     print('❌ Error handling notification response: $e');
+  }
+}
+
+// Ensure notification context uses same SharedPreferences as main app
+Future<void> _ensureSharedContext() async {
+  try {
+    // Force initialization of SharedPreferences in notification context
+    final prefs = await SharedPreferences.getInstance();
+    final allKeys = prefs.getKeys();
+    print('🔔 NOTIFICATION CONTEXT KEYS: $allKeys');
+    
+    // Check if we can see the UI context keys (username, password)
+    if (allKeys.contains('username') && allKeys.contains('password')) {
+      print('✅ SUCCESS: Notification context matches UI context');
+    } else {
+      print('⚠️ WARNING: Notification context differs from UI context');
+      print('🔔 Available keys: $allKeys');
+      
+      // Try to create a sync marker that UI can check
+      await prefs.setString('notification_context_active', DateTime.now().toIso8601String());
+      print('🔔 Set notification context marker');
+    }
+    
+    // Check if medication_logs key exists in this context
+    final medLogs = prefs.getString('medication_logs');
+    if (medLogs != null) {
+      print('✅ MEDICATION LOGS FOUND in notification context: ${medLogs.length} chars');
+    } else {
+      print('❌ NO MEDICATION LOGS in notification context - will create new storage');
+    }
+  } catch (e) {
+    print('❌ Context check failed: $e');
   }
 }
 
@@ -391,6 +437,33 @@ class NotiService {
       print('🧪 Test notification created - tap the action buttons to test logging');
     } catch (e) {
       print('❌ Error creating test notification: $e');
+    }
+  }
+
+  // Test method to manually trigger notification response handler
+  Future<void> testContextSynchronization() async {
+    print('🧪 Testing context synchronization manually...');
+    
+    try {
+      // Create a mock notification response
+      final testPayload = jsonEncode({
+        'medicine': 'Context Test Medicine',
+        'scheduled_time': DateTime.now().toIso8601String(),
+      });
+      
+      // Simulate the notification response
+      final mockResponse = NotificationResponse(
+        notificationResponseType: NotificationResponseType.selectedNotificationAction,
+        actionId: medTakenActionId,
+        payload: testPayload,
+      );
+      
+      print('🧪 Manually calling notification response handler...');
+      await onDidReceiveNotificationResponse(mockResponse);
+      
+      print('✅ Context synchronization test completed');
+    } catch (e) {
+      print('❌ Error in context synchronization test: $e');
     }
   }
 }

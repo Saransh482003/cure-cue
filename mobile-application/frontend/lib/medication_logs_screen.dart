@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'services/medication_log_service.dart';
 import 'services/noti_serve.dart';
 import 'theme_constants.dart';
@@ -20,42 +22,89 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
   void initState() {
     super.initState();
     _loadLogs();
-  }
-  Future<void> _loadLogs() async {
+  }    Future<void> _loadLogs() async {
+    print('🔄 Loading medication logs...');
     setState(() => _isLoading = true);
     
     try {
-      List<Map<String, dynamic>> logs;
+      // DEBUG: Check what keys exist in storage
+      final prefs = await SharedPreferences.getInstance();
+      final allKeys = prefs.getKeys();
+      print('🔍 ALL STORAGE KEYS IN UI SCREEN: $allKeys');
       
-      if (_filter == 'all') {
-        logs = await MedicationLogService.getMedicationLogs();
+      // Check if notification context marker exists
+      final notifMarker = prefs.getString('notification_context_active');
+      if (notifMarker != null) {
+        print('✅ NOTIFICATION CONTEXT MARKER FOUND: $notifMarker');
+        print('✅ UI and Notification contexts are SYNCHRONIZED');
       } else {
-        logs = await MedicationLogService.getLogsByAction(_filter);
+        print('❌ NO NOTIFICATION CONTEXT MARKER - contexts may be isolated');
+      }
+      
+      // Check the exact key we're using
+      final ourData = prefs.getString('medication_logs');
+      print('🔍 MEDICATION_LOGS KEY DATA LENGTH: ${ourData?.length}');
+      
+      // Check if there are other medication-related keys
+      for (String key in allKeys) {
+        if (key.toLowerCase().contains('med') || key.toLowerCase().contains('log')) {
+          final value = prefs.getString(key);
+          print('🔍 RELATED KEY "$key": ${value?.length} chars');
+        }
+      }
+      
+      List<Map<String, dynamic>> logs = await MedicationLogService.getMedicationLogs();
+      print('📦 LOGS FROM SERVICE: ${logs.length} total logs');
+      if (logs.isNotEmpty) {
+        print('📦 LATEST LOG: ${logs.first}');
+      }
+      print('📊 TOTAL LOGS COUNT: ${logs.length}');
+      
+      // Apply filter if needed
+      if (_filter != 'all') {
+        logs = logs.where((log) => log['action'] == _filter).toList();
+        print('📊 FILTERED LOGS COUNT: ${logs.length}');
       }
       
       final stats = await MedicationLogService.getActionStats();
       
       // Debug prints to console
       print('📊 LOGS DEBUG: Total logs found: ${logs.length}');
+      print('📊 FILTER: Current filter is: $_filter');
       print('📊 STATS DEBUG: $stats');
-      for (int i = 0; i < logs.length && i < 5; i++) {
-        print('📊 LOG $i: ${logs[i]}');
+      
+      if (logs.isNotEmpty) {
+        // Print ALL logs for debugging
+        print('📋 ALL LOGS:');
+        for (int i = 0; i < logs.length; i++) {
+          print('📊 LOG $i: ${logs[i]}');
+        }
+        
+        // Sort logs by action time (most recent first)
+        logs.sort((a, b) => 
+          DateTime.parse(b['actionTime']).compareTo(DateTime.parse(a['actionTime']))
+        );
+      } else {
+        print('❌ NO LOGS FOUND - checking storage directly...');
+        // if (rawData != null && rawData.isNotEmpty) {
+        //   print('⚠️ Storage has data but service returned empty - potential parsing issue');
+        // }
       }
       
-      // Sort logs by action time (most recent first)
-      logs.sort((a, b) => 
-        DateTime.parse(b['actionTime']).compareTo(DateTime.parse(a['actionTime']))
-      );
-      
-      setState(() {
-        _logs = logs;
-        _stats = stats;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _logs = logs;
+          _stats = stats;
+          _isLoading = false;
+        });
+        
+        print('📊 UI UPDATE: Set ${_logs.length} logs in state');
+        print('📊 UI STATE LOGS: $_logs');
+      }
     } catch (e) {
       print('❌ ERROR loading logs: $e');
-      setState(() => _isLoading = false);
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading logs: $e')),
         );
@@ -115,8 +164,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
                 );
               }
             },
-          ),
-          // Test notification button
+          ),          // Test notification button
           IconButton(
             icon: const Icon(Icons.notification_add),
             tooltip: 'Test Notification Actions',
@@ -133,6 +181,30 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+          ),
+          // Test context sync button
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Test Context Sync',
+            onPressed: () async {
+              try {
+                print('🧪 Testing context synchronization...');
+                await NotiService().testContextSynchronization();
+                await _loadLogs(); // Refresh logs after test
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Context sync test completed - check console and logs!')),
+                  );
+                }
+              } catch (e) {
+                print('❌ Error in context sync test: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sync test error: $e')),
                   );
                 }
               }
@@ -207,7 +279,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen> {
               );
               
               if (result == true) {
-                await MedicationLogService.clearLogs();
+                // await MedicationLogService.clearLogs();
                 _loadLogs();
               }
             },

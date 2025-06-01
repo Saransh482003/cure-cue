@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/services/noti_serve.dart';
+import 'package:frontend/services/medication_log_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dashboard_screen.dart';
@@ -11,10 +13,34 @@ import 'expiry-date-check.dart';
 import 'medicine-name-reader.dart';
 import 'services/auth_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  NotiService().initNotification();
+  // Initialize services in the same context to ensure synchronization
+  print('📱 Initializing services in main context...');
+  
+  // Initialize MedicationLogService first to establish SharedPreferences context
+  await MedicationLogService.initialize();
+  
+  // Initialize NotificationService in same context
+  final notiService = NotiService();
+  await notiService.initNotification();
+  
+  // Force a context marker to verify notification/UI synchronization
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('main_context_init', DateTime.now().toIso8601String());
+    print('✅ Main context marker set');
+    
+    // Verify we can see all expected keys
+    final allKeys = prefs.getKeys();
+    print('📱 MAIN CONTEXT KEYS: $allKeys');
+  } catch (e) {
+    print('❌ Error setting main context marker: $e');
+  }
+  
+  print('✅ All services initialized in main context');
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     // DeviceOrientation.portraitDown,
