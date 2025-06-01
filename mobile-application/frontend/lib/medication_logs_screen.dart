@@ -146,13 +146,13 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
         barRods: [
           BarChartRodData(
             toY: e.value['taken']!.toDouble(),
-            color: Colors.green,
+            color: const Color.fromARGB(255, 0, 120, 10),
             width: 16,
             borderRadius: BorderRadius.circular(4),
           ),
           BarChartRodData(
             toY: e.value['forgot']!.toDouble(),
-            color: Colors.red,
+            color: const Color.fromARGB(255, 216, 0, 36),
             width: 16,
             borderRadius: BorderRadius.circular(4),
           ),
@@ -361,9 +361,9 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('Total', _stats['total'].toString(), Colors.blue),
-                _buildStatItem('Taken', _stats['taken'].toString(), Colors.green),
-                _buildStatItem('Missed', _stats['forgot'].toString(), Colors.red),
+                _buildStatItem('Total', _stats['total'].toString(), ThemeConstants.primaryColor),
+                _buildStatItem('Taken', _stats['taken'].toString(), const Color.fromARGB(255, 0, 120, 10)),
+                _buildStatItem('Missed', _stats['forgot'].toString(), const Color.fromARGB(255, 216, 0, 36)),
               ],
             ),
           ],
@@ -563,7 +563,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                         sections: [
                           PieChartSectionData(
                             value: taken.toDouble(),
-                            color: const Color.fromARGB(255, 127, 177, 128),
+                            color: const Color.fromARGB(255, 0, 120, 10),
                             title: '$taken',
                             radius: 40,
                             titleStyle: const TextStyle(
@@ -574,7 +574,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                           ),
                           PieChartSectionData(
                             value: (total - taken).toDouble(),
-                            color: Colors.red,
+                            color: const Color.fromARGB(255, 216, 0, 36),
                             title: '${total - taken}',
                             radius: 40,
                             titleStyle: const TextStyle(
@@ -596,8 +596,8 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: adherenceRate >= 80 ? Colors.green : 
-                                 adherenceRate >= 60 ? Colors.orange : Colors.red,
+                          color: adherenceRate >= 80 ? const Color.fromARGB(255, 0, 120, 10) : 
+                                 adherenceRate >= 60 ? const Color.fromARGB(255, 255, 165, 0) : const Color.fromARGB(255, 216, 0, 36),
                         ),
                       ),
                       const Text(
@@ -612,7 +612,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                             width: 12,
                             height: 12,
                             decoration: const BoxDecoration(
-                              color: Colors.green,
+                              color: const Color.fromARGB(255, 0, 120, 10),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -628,7 +628,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                             width: 12,
                             height: 12,
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: const Color.fromARGB(255, 216, 0, 36),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -746,7 +746,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                 Container(
                   width: 12,
                   height: 12,
-                  color: Colors.green,
+                  color: const Color.fromARGB(255, 0, 120, 10),
                 ),
                 const SizedBox(width: 8),
                 const Text('Taken', style: TextStyle(fontSize: 12)),
@@ -754,7 +754,7 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
                 Container(
                   width: 12,
                   height: 12,
-                  color: Colors.red,
+                  color: const Color.fromARGB(255, 216, 0, 36),
                 ),
                 const SizedBox(width: 8),
                 const Text('Missed', style: TextStyle(fontSize: 12)),
@@ -921,9 +921,9 @@ class _MedicationLogsScreenState extends State<MedicationLogsScreen>
     
     final isTaken = action == 'taken';
     final iconData = isTaken ? Icons.check_circle : Icons.cancel;
-    final iconColor = isTaken ? Colors.green : Colors.red;
-    final backgroundColor = isTaken ? Colors.green[50] : Colors.red[50];
-    
+    final iconColor = isTaken ? const Color.fromARGB(255, 0, 120, 10) : const Color.fromARGB(255, 216, 0, 36);
+    final backgroundColor = isTaken ? const Color.fromARGB(255, 220, 248, 220) : const Color.fromARGB(255, 255, 220, 220);
+
     return Card(
       elevation: 2,
       color: backgroundColor,
