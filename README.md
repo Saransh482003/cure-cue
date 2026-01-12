@@ -1,8 +1,8 @@
 # Revolutionizing AI in Healthcare
 
-### **Project Title:** Adherence Assistant, Prescription Reader, and Expiry Date Checker
-### **Duration:** 21st April – 23rd May
-### **Description:** Our intelligent tools leverage cutting-edge Large Language Models (LLMs) to transform patient care. The Expiry Date Checker ensures safe medication usage by identifying expired drugs with precision. The Adherence Assistant helps patients follow their prescriptions accurately, boosting treatment effectiveness. The Prescription Reader extracts and interprets complex handwritten prescriptions instantly. Together, these tools empower users with safer, smarter, and more accessible healthcare experiences.
+**Project Title:** Adherence Assistant, Prescription Reader, and Expiry Date Checker
+**Duration:** 21st April – 23rd May
+**Description:** Our intelligent tools leverage cutting-edge Large Language Models (LLMs) to transform patient care. The Expiry Date Checker ensures safe medication usage by identifying expired drugs with precision. The Adherence Assistant helps patients follow their prescriptions accurately, boosting treatment effectiveness. The Prescription Reader extracts and interprets complex handwritten prescriptions instantly. Together, these tools empower users with safer, smarter, and more accessible healthcare experiences.
 
 Steps to follow - 
 
